@@ -31,6 +31,7 @@ func (s *Bucket) ListBuckets(req *models.ListBucketsReq) *models.BaseResponse {
 		s3Client = c
 		s.S3ClientMap[req.ConnectionId] = s3Client
 	}
+
 	output, err := s3Client.ListBuckets(s.GetTimeoutContext(), &s3.ListBucketsInput{})
 	if err != nil {
 		s.Log.Errorf("list buckets error: %v", err)

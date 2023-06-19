@@ -31,9 +31,10 @@ export namespace models {
 	export class ListObjectsReq {
 	    connectionId: string;
 	    bucket: string;
-	    continueToken: string;
 	    delimiter: string;
 	    prefix: string;
+	    continueToken: string;
+	    pageSize: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new ListObjectsReq(source);
@@ -43,9 +44,10 @@ export namespace models {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.connectionId = source["connectionId"];
 	        this.bucket = source["bucket"];
-	        this.continueToken = source["continueToken"];
 	        this.delimiter = source["delimiter"];
 	        this.prefix = source["prefix"];
+	        this.continueToken = source["continueToken"];
+	        this.pageSize = source["pageSize"];
 	    }
 	}
 	export class NewConnectionReq {

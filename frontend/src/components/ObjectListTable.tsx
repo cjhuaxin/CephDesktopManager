@@ -1,4 +1,4 @@
-import { Box, Breadcrumbs, Link, Typography } from '@mui/material';
+import { Box, Breadcrumbs, Link, Pagination, PaginationItem, PaginationRenderItemParams, Typography } from '@mui/material';
 import { LinkProps } from '@mui/material/Link';
 import { styled } from '@mui/material/styles';
 import { DataGrid, GridColDef, GridValueFormatterParams } from '@mui/x-data-grid';
@@ -15,6 +15,20 @@ export default function ObjectListTable() {
         path: string;
     }
 
+    interface ItemLinkProps {
+        folder: string;
+        children: string;
+    }
+
+    interface PageInfo {
+        continueToken: string;
+        currentPageNum: number;
+        continueTokenMap: Map<number, string>;
+        disableFirst: boolean;
+        disablePrevious: boolean;
+        disableNext: boolean;
+    }
+
     const ItemLink = styled('a')({
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
@@ -22,20 +36,26 @@ export default function ObjectListTable() {
         color: 'inherit',
     });
 
-    interface ItemLinkProps {
-        folder: string;
-        children: string;
-    }
+    const PAGE_SIZE = 10;
+    const DELIMITER = "/";
 
     const [display, setDisplay] = React.useState("none");
     const [loading, setLoading] = React.useState(true);
     const [rowData, setRowData] = React.useState(Array<ListObjectsItem>);
     const [breadcrumbs, setBreadcrumbs] = React.useState(Array<LinkRouterProps>);
 
+
     const connectionId = React.useRef("");
     const bucket = React.useRef("");
-    const continueToken = React.useRef("");
-    const delimiter = "/";
+    const prefix = React.useRef("");
+    const pageInfo = React.useRef<PageInfo>({
+        continueToken: "",
+        currentPageNum: 1,
+        continueTokenMap: new Map<number, string>([[1, ""]]),
+        disableFirst: true,
+        disablePrevious: true,
+        disableNext: true,
+    });
 
     const FolderLink = React.memo(function FolderLink(props: ItemLinkProps) {
         const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -108,27 +128,43 @@ export default function ObjectListTable() {
         })
     }
 
-    const listRootObjects = async () => {
+    const listRootObjects = () => {
+        setLoading(true);
         let req = new models.ListObjectsReq({
             connectionId: connectionId.current,
             bucket: bucket.current,
-            continueToken: continueToken.current,
-            delimiter: delimiter,
+            continueToken: "",
+            prefix: "",
+            delimiter: DELIMITER,
+            pageSize: PAGE_SIZE,
         })
-        const res = await ListObjects(req);
-        setLoading(false);
-        if (res.err_msg != "") {
-            let alertBody: AlertEventBody = {
-                alertType: ALERT_TYPE_ERROR,
-                message: res.err_msg
+
+        ListObjects(req).then((res: models.BaseResponse) => {
+            setLoading(false);
+            if (res.err_msg != "") {
+                let alertBody: AlertEventBody = {
+                    alertType: ALERT_TYPE_ERROR,
+                    message: res.err_msg
+                }
+                PubSub.publish(TOPIC_ALERT, alertBody);
+            } else {
+                if (res.data) {
+                    //clear the prefix
+                    prefix.current = "";
+                    let current = pageInfo.current;
+                    current.disableFirst = true;
+                    current.disablePrevious = true;
+                    setRowData(res.data.objects);
+                    setBreadcrumbs([]);
+                    // set page info
+                    if (res.data.nextContinuationToken != "") {
+                        current.continueToken = res.data.nextContinuationToken;
+                        current.continueTokenMap.set(current.currentPageNum + 1, res.data.nextContinuationToken);
+                        current.disableNext = false;
+                    }
+                }
             }
-            PubSub.publish(TOPIC_ALERT, alertBody);
-        } else {
-            if (res.data) {
-                setRowData(res.data.objects);
-                setBreadcrumbs([]);
-            }
-        }
+        });
     }
 
     const handleClickBreadcrumb = (event: any) => {
@@ -147,34 +183,33 @@ export default function ObjectListTable() {
     };
 
     const handleFolderClick = (props: ItemLinkProps) => {
+        setLoading(true);
+        prefix.current = "";
         //assemble the query prefix
-        let prefix = "";
         let stopIndex = breadcrumbs.findIndex(b => b.path === props.folder);
         if (stopIndex == -1) {
             stopIndex = breadcrumbs.length;
         }
         breadcrumbs.forEach((breadcrumb, i) => {
             if (i <= stopIndex) {
-                prefix += breadcrumb.path;
+                prefix.current += breadcrumb.path;
             }
         });
-        if (prefix != "") {
-            prefix = prefix + "/"
+        if (prefix.current != "") {
+            prefix.current = prefix.current + "/"
         }
         // Click on the breadcrumbs that don't exist, just append it to the prefix
         if (stopIndex == breadcrumbs.length) {
-            prefix += props.folder;
+            prefix.current += props.folder;
         }
-
         let req = new models.ListObjectsReq({
             connectionId: connectionId.current,
             bucket: bucket.current,
-            continueToken: continueToken.current,
-            delimiter: delimiter,
-            prefix: prefix,
+            continueToken: "",
+            delimiter: DELIMITER,
+            prefix: prefix.current,
+            pageSize: PAGE_SIZE,
         })
-        console.log(req);
-        setLoading(true);
         ListObjects(req).then(res => {
             setLoading(false);
             if (res.err_msg != "") {
@@ -198,6 +233,136 @@ export default function ObjectListTable() {
                         // Click on the breadcrumbs that exists, cutoff the sub path
                         setBreadcrumbs(prev => prev.slice(0, stopIndex + 1));
                     }
+
+                    // set page info
+                    let current = pageInfo.current;
+                    current.disableFirst = true;
+                    current.disablePrevious = true;
+                    current.continueTokenMap = new Map([[1, ""]]);
+                    if (res.data.nextContinuationToken != "") {
+                        current.continueToken = res.data.nextContinuationToken;
+                        current.continueTokenMap.set(current.currentPageNum + 1, res.data.nextContinuationToken);
+                        current.disableNext = false;
+                    } else {
+                        current.continueToken = "";
+                        current.disableNext = true;
+                    }
+                }
+            }
+        });
+    };
+
+    const handleFirstClick = () => {
+        setLoading(true);
+        let req = new models.ListObjectsReq({
+            connectionId: connectionId.current,
+            bucket: bucket.current,
+            continueToken: "",
+            delimiter: DELIMITER,
+            prefix: prefix.current,
+            pageSize: PAGE_SIZE,
+        })
+        ListObjects(req).then(res => {
+            setLoading(false);
+            if (res.err_msg != "") {
+                let alertBody: AlertEventBody = {
+                    alertType: ALERT_TYPE_ERROR,
+                    message: res.err_msg
+                }
+                PubSub.publish(TOPIC_ALERT, alertBody);
+            } else {
+                if (res.data) {
+                    let current = pageInfo.current;
+                    current.disableFirst = true;
+                    current.disablePrevious = true;
+                    setRowData(res.data.objects);
+                    // set page info
+                    if (res.data.nextContinuationToken != "") {
+                        current.continueToken = res.data.nextContinuationToken;
+                        current.currentPageNum = 1;
+                        current.disableNext = false;
+                    }
+                }
+            }
+        });
+    };
+
+    const handlePreviousClick = () => {
+        let current = pageInfo.current;
+        setLoading(true);
+        let continueToken = current.continueTokenMap.get(current.currentPageNum - 1);
+        let req = new models.ListObjectsReq({
+            connectionId: connectionId.current,
+            bucket: bucket.current,
+            continueToken: continueToken,
+            delimiter: DELIMITER,
+            prefix: prefix.current,
+            pageSize: PAGE_SIZE,
+        })
+
+        ListObjects(req).then(res => {
+            setLoading(false);
+            if (res.err_msg != "") {
+                let alertBody: AlertEventBody = {
+                    alertType: ALERT_TYPE_ERROR,
+                    message: res.err_msg
+                }
+                PubSub.publish(TOPIC_ALERT, alertBody);
+            } else {
+                if (res.data) {
+                    //continueToken is empty means the first page number
+                    if (continueToken == "") {
+                        current.disableFirst = true;
+                        current.disablePrevious = true;
+                    }
+                    if (res.data.nextContinuationToken != "") {
+                        current.continueToken = res.data.nextContinuationToken;
+                        current.disableNext = false;
+                    }
+                    setRowData(res.data.objects);
+                    // set page info
+                    current.currentPageNum -= 1;
+                }
+            }
+        });
+    };
+
+    const handleNextClick = () => {
+        setLoading(true);
+        let req = new models.ListObjectsReq({
+            connectionId: connectionId.current,
+            bucket: bucket.current,
+            continueToken: pageInfo.current.continueToken,
+            delimiter: DELIMITER,
+            prefix: prefix.current,
+            pageSize: PAGE_SIZE,
+        })
+        ListObjects(req).then(res => {
+            setLoading(false);
+            if (res.err_msg != "") {
+                let alertBody: AlertEventBody = {
+                    alertType: ALERT_TYPE_ERROR,
+                    message: res.err_msg
+                }
+                PubSub.publish(TOPIC_ALERT, alertBody);
+            } else {
+                if (res.data) {
+                    let current = pageInfo.current;
+                    current.disableFirst = false;
+                    current.disablePrevious = false;
+
+                    setRowData(res.data.objects);
+                    let disableNext = false;
+                    // set page info
+                    if (res.data.nextContinuationToken != "") {
+                        current.continueToken = res.data.nextContinuationToken;
+                        current.continueTokenMap.set(current.currentPageNum + 2, res.data.nextContinuationToken);
+                    } else {
+                        //last page disable next button
+                        disableNext = true;
+                    }
+                    current.currentPageNum += 1;
+                    current.disableNext = disableNext;
                 }
             }
         });
@@ -238,12 +403,44 @@ export default function ObjectListTable() {
                     );
                 })}
             </Breadcrumbs>
+            <div style={{ height: '87vh', width: '100%' }}>
+                <DataGrid
+                    pageSizeOptions={[PAGE_SIZE]}
+                    paginationMode="server"
+                    rowHeight={35}
+                    loading={loading}
+                    columns={columns}
+                    rows={rowData}
+                    hideFooter={true}
+                />
+            </div>
 
-            <DataGrid
-                loading={loading}
-                rowHeight={35}
-                columns={columns}
-                rows={rowData}
+            <Pagination
+                color="primary"
+                showFirstButton
+                sx={{
+                    marginTop: 1,
+                    marginBottom: 1,
+                    float: "right",
+                }}
+                count={0}
+                renderItem={
+                    (item) => {
+                        if (item.type === "first") {
+                            item.disabled = pageInfo.current.disableFirst;
+                            item.onClick = () => { handleFirstClick() };
+                        }
+                        if (item.type === "previous") {
+                            item.disabled = pageInfo.current.disablePrevious;
+                            item.onClick = () => { handlePreviousClick() };
+                        }
+                        if (item.type === "next") {
+                            item.disabled = pageInfo.current.disableNext;
+                            item.onClick = () => { handleNextClick() };
+                        }
+                        return (<PaginationItem {...item} />);
+                    }
+                }
             />
         </Box >
     );

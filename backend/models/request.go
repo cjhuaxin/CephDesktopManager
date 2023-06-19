@@ -16,7 +16,8 @@ type ListBucketsReq struct {
 type ListObjectsReq struct {
 	ConnectionId  string `json:"connectionId"`
 	Bucket        string `json:"bucket"`
-	ContinueToken string `json:"continueToken"`
 	Delimiter     string `json:"delimiter"`
 	Prefix        string `json:"prefix"`
+	ContinueToken string `json:"continueToken"`
+	PageSize      int32  `json:"pageSize"`
 }

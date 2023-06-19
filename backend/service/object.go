@@ -8,13 +8,11 @@ import (
 	"github.com/cjhuaxin/CephDesktopManager/backend/base"
 	"github.com/cjhuaxin/CephDesktopManager/backend/errcode"
 	"github.com/cjhuaxin/CephDesktopManager/backend/models"
-	"github.com/cjhuaxin/CephDesktopManager/backend/resource"
 	"github.com/rs/xid"
 )
 
 type Object struct {
 	*base.Service
-	Pagesize int32
 }
 
 func NewObjectService(baseService *base.Service) *Object {
@@ -24,7 +22,6 @@ func NewObjectService(baseService *base.Service) *Object {
 }
 
 func (s *Object) Init() error {
-	s.Pagesize = resource.DefaultObjectPagesize
 	return nil
 }
 
@@ -34,9 +31,10 @@ func (s *Object) ListObjects(req *models.ListObjectsReq) *models.BaseResponse {
 		s.Log.Errorf("connection[%s] is lost", req.ConnectionId)
 		return s.BuildFailed(errcode.UnExpectedErr, "connection is lost,please re-connect")
 	}
+	s.Log.Infof("request: %#v", req)
 	input := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(req.Bucket),
-		MaxKeys: s.Pagesize,
+		MaxKeys: req.PageSize,
 	}
 	if req.ContinueToken != "" {
 		input.ContinuationToken = aws.String(req.ContinueToken)
