@@ -3,13 +3,17 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import LinkIcon from '@mui/icons-material/Link';
 import { LoadingButton } from '@mui/lab';
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormHelperText, IconButton, InputAdornment, InputLabel, OutlinedInput, TextField } from '@mui/material';
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormControlLabel, FormHelperText, IconButton, InputAdornment, InputLabel, OutlinedInput, Switch, TextField, Tooltip, FormGroup } from '@mui/material';
 import PubSub from "pubsub-js";
 import * as React from 'react';
 import { models } from "../../wailsjs/go/models";
 import { SaveS3Connection, TestS3Connection } from "../../wailsjs/go/service/Connection";
 import { ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_REFRESH_CONNECTION_LIST } from '../constants/Pubsub';
 import { AlertEventBody } from "../dto/Frontend";
+
+const fieldSx = { m: 1 };
+const pathStyleTitle =`For most of all privately deployed Object Storage Service(ceph/minio) Enable the client to use path-style addressing(https://192.168.1.10/BUCKET/KEY).
+                       For Cloud Object Storage service,set false will use virtual hosted bucket addressing when possible(https://BUCKET.s3.amazonaws.com/KEY).`
 
 export default function NewConnection() {
     const openId = React.useRef<number>(1);
@@ -26,6 +30,7 @@ export default function NewConnection() {
     const [accessKey, setAccessKey] = React.useState("");
     const [secretKey, setSecretKey] = React.useState("");
     const [region, setRegion] = React.useState("");
+    const [pathStyle, setPathStyle] = React.useState(true);
 
     // error text definitions
     const [connectionNameErrorText, setConnectionNameErrorText] = React.useState("");
@@ -126,7 +131,7 @@ export default function NewConnection() {
             setAccessKeyErrorText("accessKey is required");
             inputValid = false;
         } else {
-            const regex = /^\w{20}$/
+            const regex = /^.{20}$/
             if (regex.test(accessKey)) {
                 setAccessKeyErrorText("");
             } else {
@@ -138,7 +143,7 @@ export default function NewConnection() {
             setSecretKeyErrorText("secretKey is required");
             inputValid = false;
         } else {
-            const regex = /^\w{40}$/
+            const regex = /^.{40}$/
             if (regex.test(secretKey)) {
                 setSecretKeyErrorText("");
             } else {
@@ -160,7 +165,7 @@ export default function NewConnection() {
                 <DialogContent>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
                         <div>
-                            <FormControl fullWidth sx={{ m: 1 }}>
+                            <FormControl fullWidth sx={fieldSx}>
                                 <TextField
                                     required
                                     label="Name"
@@ -171,7 +176,7 @@ export default function NewConnection() {
                                     onChange={e => setConnectionName(e.target.value)}
                                 />
                             </FormControl>
-                            <FormControl fullWidth sx={{ m: 1 }}>
+                            <FormControl fullWidth sx={fieldSx}>
                                 <TextField
                                     required
                                     label="Endpoint"
@@ -182,7 +187,7 @@ export default function NewConnection() {
                                     onChange={e => setEndpoint(e.target.value)}
                                 />
                             </FormControl>
-                            <FormControl fullWidth sx={{ m: 1 }}>
+                            <FormControl fullWidth sx={fieldSx}>
                                 <TextField
                                     required
                                     label="Access Key"
@@ -193,7 +198,7 @@ export default function NewConnection() {
                                     onChange={e => setAccessKey(e.target.value)}
                                 />
                             </FormControl>
-                            <FormControl fullWidth sx={{ m: 1 }}>
+                            <FormControl fullWidth sx={fieldSx}>
                                 <InputLabel htmlFor="secretKey">Secret Key</InputLabel>
                                 <OutlinedInput
                                     required
@@ -217,7 +222,7 @@ export default function NewConnection() {
                                 />
                                 <FormHelperText error={!!secretKeyErrorText}>{secretKeyErrorText}</FormHelperText>
                             </FormControl>
-                            <FormControl fullWidth sx={{ m: 1 }}>
+                            <FormControl fullWidth sx={fieldSx}>
                                 <TextField
                                     label="Region"
                                     id="region"
@@ -226,7 +231,18 @@ export default function NewConnection() {
                                     onChange={e => setRegion(e.target.value)}
                                 />
                             </FormControl>
-                            <FormControl>
+                            <FormControl fullWidth>
+                                <FormGroup aria-label="position" row>
+                                    <Tooltip title={pathStyleTitle}>
+                                        <FormControlLabel
+                                            control={<Switch checked={pathStyle} size="small" />}
+                                            label="Path Style"
+                                            labelPlacement="start"
+                                        />
+                                    </Tooltip>
+                                </FormGroup>
+                            </FormControl>
+                            <FormControl sx={fieldSx}>
                                 <LoadingButton
                                     onClick={handleClickTestConnection}
                                     loading={loading}

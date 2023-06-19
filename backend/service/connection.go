@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"path/filepath"
@@ -9,9 +8,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cjhuaxin/CephDesktopManager/backend/base"
 	"github.com/cjhuaxin/CephDesktopManager/backend/errcode"
+	"github.com/cjhuaxin/CephDesktopManager/backend/models"
 	"github.com/cjhuaxin/CephDesktopManager/backend/resource"
 	"github.com/cjhuaxin/CephDesktopManager/backend/util"
-	"github.com/cjhuaxin/CephDesktopManager/models"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/xid"
 	"github.com/thanhpk/randstr"
@@ -64,11 +63,11 @@ func (s *Connection) TestS3Connection(req *models.NewConnectionReq) *models.Base
 		region = resource.DefaultRegion
 	}
 
-	s3Client, err := util.CreateS3ClientInstance(normalizedEndpoint, req.AccessKey, req.SecretKey, region)
+	s3Client, err := util.CreateS3ClientInstance(normalizedEndpoint, req.AccessKey, req.SecretKey, region, req.PathStyle)
 	if err != nil {
 		return s.BuildFailed(errcode.ConnectionErr, err.Error())
 	}
-	_, err = s3Client.ListBuckets(context.TODO(), &s3.ListBucketsInput{})
+	_, err = s3Client.ListBuckets(s.GetTimeoutContext(), &s3.ListBucketsInput{})
 	if err != nil {
 		return s.BuildFailed(errcode.CephErr, err.Error())
 	}
@@ -97,8 +96,8 @@ func (s *Connection) SaveS3Connection(req *models.NewConnectionReq) *models.Base
 		return s.BuildFailed(errcode.AesEncryptErr, err.Error())
 	}
 	_, err = s.DbClient.Exec(
-		fmt.Sprintf("INSERT INTO connection(id,name,endpoint,ak,sk,region) values('%s','%s','%s','%s','%s','%s')",
-			connectionId, req.Name, normalizedEndpoint, req.AccessKey, encrypedSk, region))
+		fmt.Sprintf("INSERT INTO connection(id,name,endpoint,ak,sk,region,path_style) values('%s','%s','%s','%s','%s','%s','%d')",
+			connectionId, req.Name, normalizedEndpoint, req.AccessKey, encrypedSk, region, req.PathStyle))
 	if err != nil {
 		s.Log.Errorf("save the connection info to db failed: %v", err)
 		return s.BuildFailed(errcode.DatabaseErr, err.Error())

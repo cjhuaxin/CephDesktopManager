@@ -57,6 +57,7 @@ func extraBinds(baseService *base.Service) []Bind {
 	return []Bind{
 		service.NewConnectionService(baseService),
 		service.NewBucketService(baseService),
+		service.NewObjectService(baseService),
 	}
 }
 

@@ -10,6 +10,10 @@ export function BuildSucess(arg1) {
   return window['go']['service']['Bucket']['BuildSucess'](arg1);
 }
 
+export function GetTimeoutContext() {
+  return window['go']['service']['Bucket']['GetTimeoutContext']();
+}
+
 export function Init() {
   return window['go']['service']['Bucket']['Init']();
 }

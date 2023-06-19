@@ -1,7 +1,8 @@
 package errcode
 
 const (
-	CommonErr = "000000"
+	CommonErr     = "000000"
+	UnExpectedErr = "000001"
 
 	ConnectionErr      = "000100"
 	KeyringErr         = "000101"

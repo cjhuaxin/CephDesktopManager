@@ -14,6 +14,10 @@ export function GetSavedConnectionList() {
   return window['go']['service']['Connection']['GetSavedConnectionList']();
 }
 
+export function GetTimeoutContext() {
+  return window['go']['service']['Connection']['GetTimeoutContext']();
+}
+
 export function Init() {
   return window['go']['service']['Connection']['Init']();
 }

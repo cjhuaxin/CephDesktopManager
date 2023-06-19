@@ -1,6 +1,5 @@
 import { ExpandLess, ExpandMore } from '@mui/icons-material';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import TreeItem from '@mui/lab/TreeItem';
 import TreeView from '@mui/lab/TreeView';
 import { Collapse, ListItemButton, ListItemText } from '@mui/material';
@@ -11,9 +10,9 @@ import * as React from 'react';
 import { models } from '../../wailsjs/go/models';
 import { ListBuckets } from "../../wailsjs/go/service/Bucket";
 import { GetSavedConnectionList } from "../../wailsjs/go/service/Connection";
-import { ALERT_TYPE_ERROR, TOPIC_ALERT } from '../constants/Pubsub';
+import { ALERT_TYPE_ERROR, TOPIC_ALERT, TOPIC_LIST_OBJECTS, TOPIC_LOADING } from '../constants/Pubsub';
 import { ConnectionItem } from '../dto/BackendRes';
-import { AlertEventBody } from '../dto/Frontend';
+import { AlertEventBody, ListObjectsEventBody } from '../dto/Frontend';
 
 const ConnectionList = () => {
 
@@ -30,14 +29,17 @@ const ConnectionList = () => {
         if (expandMap.get(itemId)) {
             setExpandMap(prev => new Map([...prev, [itemId, false]]));
         } else {
-            setExpandMap(prev => new Map([...prev, [itemId, true]]));
             //list buckets
             listBuckets(itemId);
         }
     }
 
     const queryConnectionList = async () => {
+        // show loading
+        PubSub.publish(TOPIC_LOADING, true);
         const res = await GetSavedConnectionList();
+        // hide loading
+        PubSub.publish(TOPIC_LOADING, false);
         if (res.data) {
             setConnectionList(res.data);
         }
@@ -46,8 +48,11 @@ const ConnectionList = () => {
     const listBuckets = async (connectionId: string) => {
         let req = new models.ListBucketsReq();
         req.connectionId = connectionId;
-        console.log(req);
+        // show loading
+        PubSub.publish(TOPIC_LOADING, true);
         const res = await ListBuckets(req);
+        // hide loading
+        PubSub.publish(TOPIC_LOADING, false);
         if (res.err_msg != "") {
             let alertBody: AlertEventBody = {
                 alertType: ALERT_TYPE_ERROR,
@@ -57,8 +62,17 @@ const ConnectionList = () => {
             return;
         }
         if (res.data) {
-            connectionBucketsMap.set(connectionId, res.data);
+            setExpandMap(prev => new Map([...prev, [connectionId, true]]));
+            setConnectionBucketsMap(prev => new Map([...prev, [connectionId, res.data]]));
         }
+    }
+
+    const handleBucketClick = (connectionId: string, bucket: string) => {
+        let alertBody: ListObjectsEventBody = {
+            connectionId: connectionId,
+            bucket: bucket
+        }
+        PubSub.publish(TOPIC_LIST_OBJECTS, alertBody);
     }
 
     const subscribeRefreshListEvent = () => {
@@ -89,13 +103,15 @@ const ConnectionList = () => {
                         </ListItemButton>
                         <Collapse in={expandMap.get(item.id)} timeout="auto" unmountOnExit>
                             <TreeView
-                                defaultCollapseIcon={<ExpandMoreIcon />}
                                 defaultExpandIcon={<ChevronRightIcon />}
                             >
                                 {
-                                    connectionBucketsMap.get(item.id)?.map((item: string) => (
-                                        <TreeItem nodeId="1" label="Applications">
-                                            <TreeItem nodeId="2" label="Calendar" />
+                                    connectionBucketsMap.get(item.id)?.map((bucket: string) => (
+                                        <TreeItem
+                                            nodeId={item.id + "_" + bucket}
+                                            label={bucket}
+                                            onClick={() => handleBucketClick(item.id, bucket)}
+                                        >
                                         </TreeItem>
                                     ))
                                 }

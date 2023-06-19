@@ -1,12 +1,14 @@
 package base
 
 import (
+	"context"
 	"database/sql"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/cjhuaxin/CephDesktopManager/backend/models"
 	"github.com/cjhuaxin/CephDesktopManager/backend/resource"
 	"github.com/cjhuaxin/CephDesktopManager/backend/util"
-	"github.com/cjhuaxin/CephDesktopManager/models"
 	"go.uber.org/zap"
 )
 
@@ -64,14 +66,15 @@ func (s *Service) InitAndCacheS3Client(connectionId string) (*s3.Client, error) 
 		s.Log.Errorf("query encryption key failed: %v", err)
 		return nil, err
 	}
-	stmt, err := s.DbClient.Prepare("SELECT id,name,endpoint,ak,sk,region FROM connection WHERE id = ?")
+	stmt, err := s.DbClient.Prepare("SELECT id,name,endpoint,ak,sk,region,path_style FROM connection WHERE id = ?")
 	if err != nil {
 		s.Log.Errorf("parepare statement failed: %v", err)
 		return nil, err
 	}
 	// query the connection details by connection id
 	var id, name, endpoint, ak, sk, region string
-	err = stmt.QueryRow(connectionId).Scan(&id, &name, &endpoint, &ak, &sk, &region)
+	var pathStyle int8
+	err = stmt.QueryRow(connectionId).Scan(&id, &name, &endpoint, &ak, &sk, &region, &pathStyle)
 	if err != nil {
 		s.Log.Errorf("query row[%s] failed: %v", connectionId, err)
 		return nil, err
@@ -83,7 +86,7 @@ func (s *Service) InitAndCacheS3Client(connectionId string) (*s3.Client, error) 
 		return nil, err
 	}
 	// initialize the s3 client
-	s3Client, err := util.CreateS3ClientInstance(endpoint, ak, rawSk, region)
+	s3Client, err := util.CreateS3ClientInstance(endpoint, ak, rawSk, region, pathStyle)
 	if err != nil {
 		s.Log.Errorf("decrypt sk[%s] failed: %v", sk, err)
 		return nil, err
@@ -91,4 +94,9 @@ func (s *Service) InitAndCacheS3Client(connectionId string) (*s3.Client, error) 
 	s.S3ClientMap[connectionId] = s3Client
 
 	return s3Client, nil
+}
+
+func (s *Service) GetTimeoutContext() context.Context {
+	ctx, _ := context.WithTimeout(context.TODO(), 10*time.Second)
+	return ctx
 }

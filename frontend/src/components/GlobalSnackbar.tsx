@@ -6,18 +6,22 @@ import { TOPIC_ALERT, ALERT_TYPE_INFO, ALERT_TYPE_SUCCESS, ALERT_TYPE_WARNING, A
 import { AlertEventBody } from "../dto/Frontend";
 
 
+const anchorOrigin: SnackbarOrigin = {
+    vertical: 'top',
+    horizontal: 'right',
+}
+
+const sx: SxProps = {
+    width: '100%'
+}
+
 export default function GlobalSnackbar() {
     const [message, setMessage] = React.useState("")
     const [severity, setSeverity] = React.useState<AlertColor>()
 
-    const anchorOrigin: SnackbarOrigin = {
-        vertical: 'top',
-        horizontal: 'right',
-    }
-
-    const sx: SxProps = {
-        width: '100%'
-    }
+    const handleClose = () => {
+        setSeverity(undefined);
+    };
 
     const subscribeShowAlertEvent = () => {
         PubSub.subscribe(TOPIC_ALERT, function (_, data: AlertEventBody) {
@@ -25,10 +29,6 @@ export default function GlobalSnackbar() {
             setMessage(data.message);
         })
     }
-
-    const handleClose = () => {
-        setSeverity(undefined);
-    };
 
     React.useEffect(() => {
         subscribeShowAlertEvent();
@@ -38,7 +38,7 @@ export default function GlobalSnackbar() {
         <Box>
             <Snackbar
                 open={severity != undefined}
-                autoHideDuration={3000}
+                autoHideDuration={5000}
                 anchorOrigin={anchorOrigin}
                 onClose={handleClose}
             >

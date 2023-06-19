@@ -1,9 +1,11 @@
-import { Box, FormControl, Grid } from '@mui/material';
+import { Box, CssBaseline, FormControl, Grid } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import './App.css';
 import ConnectionList from './components/ConnectionList';
+import GlobalLoading from './components/GlobalLoading';
 import GlobalSnackbar from './components/GlobalSnackbar';
 import NewConnection from './components/NewConnection';
+import ObjectListTable from './components/ObjectListTable';
 
 const cdmTheme = createTheme({
     typography: {
@@ -12,28 +14,33 @@ const cdmTheme = createTheme({
             textTransform: 'capitalize',
         }
     },
+    palette: {
+        mode: 'dark',
+    },
 });
 
 function App() {
 
     return (
         <ThemeProvider theme={cdmTheme}>
+            <CssBaseline />
             <Box sx={{ flexGrow: 1 }}>
                 <Grid container spacing={2} sx={{ mt: 2 }}>
-                    <Grid xs={4}>
-                        <FormControl fullWidth sx={{ ml: 2 }}>
+                    <Grid xs={3}>
+                        <FormControl fullWidth sx={{ ml: 4 }}>
                             <NewConnection />
                         </FormControl>
-                        <FormControl fullWidth sx={{ ml: -2 }}>
+                        <FormControl fullWidth>
                             <ConnectionList />
                         </FormControl>
                     </Grid>
-                    <Grid xs={8}>
-                        2
+                    <Grid xs={9}>
+                        <ObjectListTable />
                     </Grid>
                 </Grid>
             </Box>
             <GlobalSnackbar />
+            <GlobalLoading />
         </ThemeProvider>
     )
 }

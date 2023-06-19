@@ -28,12 +28,33 @@ export namespace models {
 	        this.connectionId = source["connectionId"];
 	    }
 	}
+	export class ListObjectsReq {
+	    connectionId: string;
+	    bucket: string;
+	    continueToken: string;
+	    delimiter: string;
+	    prefix: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ListObjectsReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.connectionId = source["connectionId"];
+	        this.bucket = source["bucket"];
+	        this.continueToken = source["continueToken"];
+	        this.delimiter = source["delimiter"];
+	        this.prefix = source["prefix"];
+	    }
+	}
 	export class NewConnectionReq {
 	    name: string;
 	    endpoint: string;
 	    accesskey: string;
 	    secretkey: string;
 	    region: string;
+	    pathstyle: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new NewConnectionReq(source);
@@ -46,6 +67,7 @@ export namespace models {
 	        this.accesskey = source["accesskey"];
 	        this.secretkey = source["secretkey"];
 	        this.region = source["region"];
+	        this.pathstyle = source["pathstyle"];
 	    }
 	}
 

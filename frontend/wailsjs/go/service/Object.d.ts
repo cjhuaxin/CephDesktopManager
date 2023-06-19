@@ -8,6 +8,10 @@ export function BuildSucess(arg1:any):Promise<any>;
 
 export function GetTimeoutContext():Promise<context.Context>;
 
+export function Init():Promise<void>;
+
 export function InitAndCacheS3Client(arg1:string):Promise<any>;
+
+export function ListObjects(arg1:any):Promise<any>;
 
 export function QueryEncryptionKey():Promise<string>;
