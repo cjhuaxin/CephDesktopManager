@@ -95,14 +95,15 @@ func (a *App) initDirectoryStructure() error {
 	if err != nil {
 		return err
 	}
-	homeDir := filepath.Join(u.HomeDir, ".cdm")
+	homeDir := filepath.Join(u.HomeDir, resource.DirPathHome)
 	fmt.Printf("user home is: %s\n", homeDir)
 	a.Paths = &base.Paths{
-		HomeDir: homeDir, // Home directory of the user
-		ConfDir: filepath.Join(homeDir, "conf"),
-		DbDir:   filepath.Join(homeDir, "db"),
-		LogDir:  filepath.Join(homeDir, "log"),
-		TmpDir:  filepath.Join(homeDir, "tmp"),
+		HomeDir:     homeDir, // Home directory of the user
+		ConfDir:     filepath.Join(homeDir, resource.DirPathConf),
+		DbDir:       filepath.Join(homeDir, resource.DirPathDb),
+		LogDir:      filepath.Join(homeDir, resource.DirPathlog),
+		TmpDir:      filepath.Join(homeDir, resource.DirPathTmp),
+		DownloadDir: filepath.Join(homeDir, resource.DirPathDownload),
 	}
 
 	//create folder

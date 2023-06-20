@@ -10,4 +10,5 @@ const (
 	CephErr            = "000103"
 	InvalidEndpointErr = "000104"
 	AesEncryptErr      = "000105"
+	FileErr            = "000106"
 )

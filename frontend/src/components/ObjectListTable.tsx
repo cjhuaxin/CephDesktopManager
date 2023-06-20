@@ -1,14 +1,27 @@
-import { Box, Breadcrumbs, Link, Pagination, PaginationItem, PaginationRenderItemParams, Typography } from '@mui/material';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import PreviewIcon from '@mui/icons-material/Preview';
+import SecurityIcon from '@mui/icons-material/Security';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { AlertColor, Box, Breadcrumbs, Link, Pagination, PaginationItem, Typography } from '@mui/material';
 import { LinkProps } from '@mui/material/Link';
 import { styled } from '@mui/material/styles';
-import { DataGrid, GridColDef, GridValueFormatterParams } from '@mui/x-data-grid';
+import { DataGrid, GridActionsCellItem, GridColDef, GridRowId, GridValueFormatterParams } from '@mui/x-data-grid';
 import moment from 'moment';
 import prettyBytes from 'pretty-bytes';
 import * as React from 'react';
 import { models } from '../../wailsjs/go/models';
-import { ListObjects } from "../../wailsjs/go/service/Object";
-import { ALERT_TYPE_ERROR, TOPIC_ALERT, TOPIC_LIST_OBJECTS } from '../constants/Pubsub';
+import { DownloadObjects, ListObjects } from "../../wailsjs/go/service/Object";
+import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_LIST_OBJECTS } from '../constants/Pubsub';
+import { ObjectItem } from '../dto/BackendRes';
 import { AlertEventBody, ListObjectsEventBody, ListObjectsItem } from '../dto/Frontend';
+
+const alertMsg = (alertType: AlertColor, msg: string) => {
+    let alertBody: AlertEventBody = {
+        alertType: alertType,
+        message: msg
+    }
+    PubSub.publish(TOPIC_ALERT, alertBody);
+}
 
 export default function ObjectListTable() {
     interface LinkRouterProps extends LinkProps {
@@ -36,7 +49,7 @@ export default function ObjectListTable() {
         color: 'inherit',
     });
 
-    const PAGE_SIZE = 10;
+    const PAGE_SIZE = 50;
     const DELIMITER = "/";
 
     const [display, setDisplay] = React.useState("none");
@@ -117,7 +130,73 @@ export default function ObjectListTable() {
                 return params.value == null ? "" : moment(params.value).format('YYYY-MM-DD HH:mm:ss');
             },
         },
+        {
+            field: 'actions',
+            type: 'actions',
+            flex: 1,
+            getActions: (params) => {
+                if (!params.row.commonPrefix) {
+                    return ([
+                        <GridActionsCellItem
+                            icon={<FileDownloadIcon />}
+                            label="Download"
+                            onClick={downloadObject(params.row)}
+                        />,
+                        <GridActionsCellItem
+                            disabled
+                            icon={<PreviewIcon />}
+                            label="Preview"
+                            onClick={previewObject(params.row)}
+                            showInMenu
+                        />,
+                        <GridActionsCellItem
+                            disabled
+                            icon={<DeleteIcon />}
+                            label="Delete"
+                            onClick={deleteObject(params.row)}
+                            showInMenu
+                        />,
+                    ]);
+                }
+
+                return ([]);
+            },
+        },
     ];
+
+    const downloadObject = React.useCallback(
+        (row: ObjectItem) => () => {
+            setLoading(true);
+            let req: models.DownloadObjectsReq = {
+                connectionId: connectionId.current,
+                bucket: bucket.current,
+                keys: [row.realKey]
+            };
+            DownloadObjects(req).then(res => {
+                if (res.err_msg != "") {
+                    alertMsg(ALERT_TYPE_ERROR, res.err_msg);
+                } else {
+                    alertMsg(ALERT_TYPE_SUCCESS, "Download object[" + row.realKey + "] success: " + res.data);
+                    setLoading(false);
+                }
+            });
+        },
+        [],
+    );
+
+    const previewObject = React.useCallback(
+        (row: ObjectItem) => () => {
+            console.log(row);
+        },
+        [],
+    );
+
+    const deleteObject = React.useCallback(
+        (row: ObjectItem) => () => {
+            console.log(row);
+        },
+        [],
+    );
 
     const subscribeListObjectEvent = () => {
         PubSub.subscribe(TOPIC_LIST_OBJECTS, function (_, data: ListObjectsEventBody) {
@@ -128,42 +207,47 @@ export default function ObjectListTable() {
         })
     }
 
-    const listRootObjects = () => {
+    // common list objects function
+    const listObjects = (continueToken: string, prefix: string, successFn: (res: models.BaseResponse) => void, failureFn: (res: models.BaseResponse) => void) => {
         setLoading(true);
         let req = new models.ListObjectsReq({
             connectionId: connectionId.current,
             bucket: bucket.current,
-            continueToken: "",
-            prefix: "",
+            continueToken: continueToken,
+            prefix: prefix,
             delimiter: DELIMITER,
             pageSize: PAGE_SIZE,
         })
-
         ListObjects(req).then((res: models.BaseResponse) => {
             setLoading(false);
-            if (res.err_msg != "") {
-                let alertBody: AlertEventBody = {
-                    alertType: ALERT_TYPE_ERROR,
-                    message: res.err_msg
-                }
-                PubSub.publish(TOPIC_ALERT, alertBody);
+            if (res.err_msg == "") {
+                successFn(res);
             } else {
-                if (res.data) {
-                    //clear the prefix
-                    prefix.current = "";
-                    let current = pageInfo.current;
-                    current.disableFirst = true;
-                    current.disablePrevious = true;
-                    setRowData(res.data.objects);
-                    setBreadcrumbs([]);
-                    // set page info
-                    if (res.data.nextContinuationToken != "") {
-                        current.continueToken = res.data.nextContinuationToken;
-                        current.continueTokenMap.set(current.currentPageNum + 1, res.data.nextContinuationToken);
-                        current.disableNext = false;
-                    }
+                failureFn(res);
+            }
+        })
+    }
+
+    // trigger when click the bucket
+    const listRootObjects = () => {
+        listObjects("", "", function (res) {
+            if (res.data) {
+                //clear the prefix
+                prefix.current = "";
+                let current = pageInfo.current;
+                current.disableFirst = true;
+                current.disablePrevious = true;
+                setRowData(res.data.objects);
+                setBreadcrumbs([]);
+                // set page info
+                if (res.data.nextContinuationToken != "") {
+                    current.continueToken = res.data.nextContinuationToken;
+                    current.continueTokenMap.set(current.currentPageNum + 1, res.data.nextContinuationToken);
+                    current.disableNext = false;
                 }
             }
+        }, function (res) {
+            alertMsg(ALERT_TYPE_ERROR, res.err_msg);
         });
     }
 
@@ -183,7 +267,6 @@ export default function ObjectListTable() {
     };
 
     const handleFolderClick = (props: ItemLinkProps) => {
-        setLoading(true);
         prefix.current = "";
         //assemble the query prefix
         let stopIndex = breadcrumbs.findIndex(b => b.path === props.folder);
@@ -202,169 +285,106 @@ export default function ObjectListTable() {
         if (stopIndex == breadcrumbs.length) {
             prefix.current += props.folder;
         }
-        let req = new models.ListObjectsReq({
-            connectionId: connectionId.current,
-            bucket: bucket.current,
-            continueToken: "",
-            delimiter: DELIMITER,
-            prefix: prefix.current,
-            pageSize: PAGE_SIZE,
-        })
-        ListObjects(req).then(res => {
-            setLoading(false);
-            if (res.err_msg != "") {
-                let alertBody: AlertEventBody = {
-                    alertType: ALERT_TYPE_ERROR,
-                    message: res.err_msg
+
+        listObjects("", prefix.current, function (res) {
+            if (res.data) {
+                setRowData(res.data.objects);
+                let currentPath = props.folder.slice(0, -1)
+                let newBreadCrumb: LinkRouterProps = {
+                    path: currentPath,
                 }
-                PubSub.publish(TOPIC_ALERT, alertBody);
-            } else {
-                if (res.data) {
-                    setRowData(res.data.objects);
-                    let currentPath = props.folder.slice(0, -1)
-                    let newBreadCrumb: LinkRouterProps = {
-                        path: currentPath,
-                    }
 
-                    // Click on the breadcrumbs that don't exist, just add it to breadcrumbs list
-                    if (stopIndex == breadcrumbs.length) {
-                        setBreadcrumbs(prev => [...prev, newBreadCrumb]);
-                    } else {
-                        // Click on the breadcrumbs that exists, cutoff the sub path
-                        setBreadcrumbs(prev => prev.slice(0, stopIndex + 1));
-                    }
+                // Click on the breadcrumbs that don't exist, just add it to breadcrumbs list
+                if (stopIndex == breadcrumbs.length) {
+                    setBreadcrumbs(prev => [...prev, newBreadCrumb]);
+                } else {
+                    // Click on the breadcrumbs that exists, cutoff the sub path
+                    setBreadcrumbs(prev => prev.slice(0, stopIndex + 1));
+                }
 
-                    // set page info
-                    let current = pageInfo.current;
-                    current.disableFirst = true;
-                    current.disablePrevious = true;
-                    current.continueTokenMap = new Map([[1, ""]]);
-                    if (res.data.nextContinuationToken != "") {
-                        current.continueToken = res.data.nextContinuationToken;
-                        current.continueTokenMap.set(current.currentPageNum + 1, res.data.nextContinuationToken);
-                        current.disableNext = false;
-                    } else {
-                        current.continueToken = "";
-                        current.disableNext = true;
-                    }
+                // set page info
+                let current = pageInfo.current;
+                current.disableFirst = true;
+                current.disablePrevious = true;
+                current.continueTokenMap = new Map([[1, ""]]);
+                if (res.data.nextContinuationToken != "") {
+                    current.continueToken = res.data.nextContinuationToken;
+                    current.continueTokenMap.set(current.currentPageNum + 1, res.data.nextContinuationToken);
+                    current.disableNext = false;
+                } else {
+                    current.continueToken = "";
+                    current.disableNext = true;
                 }
             }
+        }, function (res) {
+            alertMsg(ALERT_TYPE_ERROR, res.err_msg);
         });
     };
 
     const handleFirstClick = () => {
-        setLoading(true);
-        let req = new models.ListObjectsReq({
-            connectionId: connectionId.current,
-            bucket: bucket.current,
-            continueToken: "",
-            delimiter: DELIMITER,
-            prefix: prefix.current,
-            pageSize: PAGE_SIZE,
-        })
-        ListObjects(req).then(res => {
-            setLoading(false);
-            if (res.err_msg != "") {
-                let alertBody: AlertEventBody = {
-                    alertType: ALERT_TYPE_ERROR,
-                    message: res.err_msg
-                }
-                PubSub.publish(TOPIC_ALERT, alertBody);
-            } else {
-                if (res.data) {
-                    let current = pageInfo.current;
-                    current.disableFirst = true;
-                    current.disablePrevious = true;
-                    setRowData(res.data.objects);
-                    // set page info
-                    if (res.data.nextContinuationToken != "") {
-                        current.continueToken = res.data.nextContinuationToken;
-                        current.currentPageNum = 1;
-                        current.disableNext = false;
-                    }
+        listObjects("", prefix.current, function (res) {
+            if (res.data) {
+                let current = pageInfo.current;
+                current.disableFirst = true;
+                current.disablePrevious = true;
+                setRowData(res.data.objects);
+                // set page info
+                if (res.data.nextContinuationToken != "") {
+                    current.continueToken = res.data.nextContinuationToken;
+                    current.currentPageNum = 1;
+                    current.disableNext = false;
                 }
             }
+        }, function (res) {
+            alertMsg(ALERT_TYPE_ERROR, res.err_msg);
         });
     };
 
     const handlePreviousClick = () => {
         let current = pageInfo.current;
-        setLoading(true);
         let continueToken = current.continueTokenMap.get(current.currentPageNum - 1);
-        let req = new models.ListObjectsReq({
-            connectionId: connectionId.current,
-            bucket: bucket.current,
-            continueToken: continueToken,
-            delimiter: DELIMITER,
-            prefix: prefix.current,
-            pageSize: PAGE_SIZE,
-        })
-
-        ListObjects(req).then(res => {
-            setLoading(false);
-            if (res.err_msg != "") {
-                let alertBody: AlertEventBody = {
-                    alertType: ALERT_TYPE_ERROR,
-                    message: res.err_msg
+        listObjects(continueToken!, prefix.current, function (res) {
+            if (res.data) {
+                //continueToken is empty means the first page number
+                if (continueToken == "") {
+                    current.disableFirst = true;
+                    current.disablePrevious = true;
                 }
-                PubSub.publish(TOPIC_ALERT, alertBody);
-            } else {
-                if (res.data) {
-                    //continueToken is empty means the first page number
-                    if (continueToken == "") {
-                        current.disableFirst = true;
-                        current.disablePrevious = true;
-                    }
-                    if (res.data.nextContinuationToken != "") {
-                        current.continueToken = res.data.nextContinuationToken;
-                        current.disableNext = false;
-                    }
-                    setRowData(res.data.objects);
-                    // set page info
-                    current.currentPageNum -= 1;
+                if (res.data.nextContinuationToken != "") {
+                    current.continueToken = res.data.nextContinuationToken;
+                    current.disableNext = false;
                 }
+                setRowData(res.data.objects);
+                // set page info
+                current.currentPageNum -= 1;
             }
+        }, function (res) {
+            alertMsg(ALERT_TYPE_ERROR, res.err_msg);
         });
     };
 
     const handleNextClick = () => {
-        setLoading(true);
-        let req = new models.ListObjectsReq({
-            connectionId: connectionId.current,
-            bucket: bucket.current,
-            continueToken: pageInfo.current.continueToken,
-            delimiter: DELIMITER,
-            prefix: prefix.current,
-            pageSize: PAGE_SIZE,
-        })
-        ListObjects(req).then(res => {
-            setLoading(false);
-            if (res.err_msg != "") {
-                let alertBody: AlertEventBody = {
-                    alertType: ALERT_TYPE_ERROR,
-                    message: res.err_msg
-                }
-                PubSub.publish(TOPIC_ALERT, alertBody);
-            } else {
-                if (res.data) {
-                    let current = pageInfo.current;
-                    current.disableFirst = false;
-                    current.disablePrevious = false;
+        listObjects(pageInfo.current.continueToken, prefix.current, function (res) {
+            if (res.data) {
+                let current = pageInfo.current;
+                current.disableFirst = false;
+                current.disablePrevious = false;
 
-                    setRowData(res.data.objects);
-                    let disableNext = false;
-                    // set page info
-                    if (res.data.nextContinuationToken != "") {
-                        current.continueToken = res.data.nextContinuationToken;
-                        current.continueTokenMap.set(current.currentPageNum + 2, res.data.nextContinuationToken);
-                    } else {
-                        //last page disable next button
-                        disableNext = true;
-                    }
-                    current.currentPageNum += 1;
-                    current.disableNext = disableNext;
+                setRowData(res.data.objects);
+                let disableNext = false;
+                // set page info
+                if (res.data.nextContinuationToken != "") {
+                    current.continueToken = res.data.nextContinuationToken;
+                    current.continueTokenMap.set(current.currentPageNum + 2, res.data.nextContinuationToken);
+                } else {
+                    //last page disable next button
+                    disableNext = true;
                 }
+                current.currentPageNum += 1;
+                current.disableNext = disableNext;
             }
+        }, function (res) {
+            alertMsg(ALERT_TYPE_ERROR, res.err_msg);
         });
     };
 

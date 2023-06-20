@@ -20,11 +20,12 @@ type Service struct {
 }
 
 type Paths struct {
-	HomeDir string
-	ConfDir string
-	DbDir   string
-	LogDir  string
-	TmpDir  string
+	HomeDir     string
+	ConfDir     string
+	DbDir       string
+	LogDir      string
+	TmpDir      string
+	DownloadDir string
 }
 
 func (*Service) BuildSucess(data interface{}) *models.BaseResponse {

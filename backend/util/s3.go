@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cjhuaxin/CephDesktopManager/backend/resource"
 )
@@ -34,4 +35,10 @@ func CreateS3ClientInstance(endpoint, ak, sk, region string, pathSytle int8) (*s
 			o.UsePathStyle = true
 		}
 	}), nil
+}
+
+func CreateS3Downloader(s3Client *s3.Client) *manager.Downloader {
+	return manager.NewDownloader(s3Client, func(d *manager.Downloader) {
+		d.PartSize = 10 * 1024 * 1024
+	})
 }

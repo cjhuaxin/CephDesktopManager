@@ -21,6 +21,7 @@ type ConnectionItem struct {
 type ObjectItem struct {
 	ID           string     `json:"id"`
 	Key          string     `json:"key"`
+	RealKey      string     `json:"realKey"` //the object storage key
 	Size         int64      `json:"size"`
 	LastModified *time.Time `json:"lastModified"`
 	CommonPrefix bool       `json:"commonPrefix"`

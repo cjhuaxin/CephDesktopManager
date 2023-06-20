@@ -21,3 +21,9 @@ type ListObjectsReq struct {
 	ContinueToken string `json:"continueToken"`
 	PageSize      int32  `json:"pageSize"`
 }
+
+type DownloadObjectsReq struct {
+	ConnectionId string   `json:"connectionId"`
+	Bucket       string   `json:"bucket"`
+	Keys         []string `json:"keys"`
+}
