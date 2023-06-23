@@ -132,22 +132,9 @@ func (s *Connection) GetSavedConnectionList() *models.BaseResponse {
 }
 
 func initTable(db *sql.DB) error {
-	checkTableStmt, err := db.Prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?")
-	if err != nil {
-		return err
-	}
 	// init connection table
-	connectionTableName := "connection"
-	err = checkTableStmt.QueryRow(connectionTableName).Scan(&connectionTableName)
+	err := doInitTable(db, "connection", resource.CreateConnectionTableSql)
 	if err != nil {
-		if err != sql.ErrNoRows {
-			return err
-		}
-		// craete connection table
-		_, err = db.Exec(resource.CreateConnectionTableSql)
-		if err != nil {
-			return err
-		}
 		// add unique index for name column
 		_, err = db.Exec(resource.CreateConnectionTableIdxSql)
 		if err != nil {
@@ -156,19 +143,18 @@ func initTable(db *sql.DB) error {
 	}
 
 	// init key table
-	keyTableName := "key"
-	err = checkTableStmt.QueryRow(keyTableName).Scan(&keyTableName)
+	err = doInitTable(db, "key", resource.CreateKeyTableSql)
 	if err != nil {
-		if err != sql.ErrNoRows {
-			return err
-		}
-		// create key table
-		_, err = db.Exec(resource.CreateKeyTableSql)
-		if err != nil {
-			return err
-		}
+		return err
 	}
 
+	// init custom_bucket table
+	err = doInitTable(db, "custom_bucket", resource.CreateCustomBucketTableSql)
+	if err != nil {
+		return err
+	}
+
+	// init encryption key
 	row, err := db.Query("SELECT * FROM key LIMIT 1")
 	if err != nil {
 		return err
@@ -182,6 +168,26 @@ func initTable(db *sql.DB) error {
 				resource.KeyTypeEncryption,
 				encryptionKey),
 		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func doInitTable(db *sql.DB, tableName, ddl string) error {
+	checkTableStmt, err := db.Prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?")
+	if err != nil {
+		return err
+	}
+	err = checkTableStmt.QueryRow(tableName).Scan(&tableName)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return err
+		}
+		// create key table
+		_, err = db.Exec(ddl)
 		if err != nil {
 			return err
 		}

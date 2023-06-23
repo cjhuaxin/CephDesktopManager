@@ -27,3 +27,8 @@ type DownloadObjectsReq struct {
 	Bucket       string   `json:"bucket"`
 	Keys         []string `json:"keys"`
 }
+
+type AddCustomBucketReq struct {
+	ConnectionId string `json:"connectionId"`
+	Bucket       string `json:"bucket"`
+}

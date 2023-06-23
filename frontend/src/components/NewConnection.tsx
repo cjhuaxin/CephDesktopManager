@@ -43,7 +43,6 @@ export default function NewConnection() {
     const handleClickShowPassword = () => setShowPassword((show) => !show);
 
     const handleClickNewConnection = () => {
-        console.log(openId.current);
         setOpen(true);
     };
 
@@ -161,7 +160,7 @@ export default function NewConnection() {
                 New Connection
             </Button>
             <Dialog open={open} key={openId.current}>
-                <DialogTitle>New Ceph RGW Connection</DialogTitle>
+                <DialogTitle>New S3 Protocol Connection</DialogTitle>
                 <DialogContent>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
                         <div>

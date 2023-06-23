@@ -1,5 +1,19 @@
 export namespace models {
 	
+	export class AddCustomBucketReq {
+	    connectionId: string;
+	    bucket: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new AddCustomBucketReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.connectionId = source["connectionId"];
+	        this.bucket = source["bucket"];
+	    }
+	}
 	export class BaseResponse {
 	    err_code: string;
 	    err_msg: string;
