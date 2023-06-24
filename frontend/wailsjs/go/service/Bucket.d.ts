@@ -8,6 +8,8 @@ export function BuildFailed(arg1:string,arg2:string):Promise<any>;
 
 export function BuildSucess(arg1:any):Promise<any>;
 
+export function CreateBucket(arg1:any):Promise<any>;
+
 export function GetTimeoutContext():Promise<context.Context>;
 
 export function Init():Promise<void>;

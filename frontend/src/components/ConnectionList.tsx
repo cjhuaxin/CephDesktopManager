@@ -13,6 +13,7 @@ import { ALERT_TYPE_ERROR, TOPIC_ALERT, TOPIC_LIST_OBJECTS, TOPIC_LOADING } from
 import { ConnectionItem } from '../dto/BackendRes';
 import { AlertEventBody, ListObjectsEventBody } from '../dto/Frontend';
 import AddCustomBucket from './AddCustomBucket';
+import CreateBucket from './CreateBucket';
 
 const ConnectionList = () => {
 
@@ -99,6 +100,7 @@ const ConnectionList = () => {
                                 data-item-id={item.id}
                                 onClick={handleClickItem}>
                                 <ListItemText primary={item.name} />
+                                <CreateBucket connectionId={item.id} />
                                 <AddCustomBucket connectionId={item.id} />
                                 {expandMap.get(item.id) ? <ExpandLess /> : <ExpandMore />}
                             </ListItemButton>

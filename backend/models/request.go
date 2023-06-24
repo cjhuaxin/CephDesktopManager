@@ -37,3 +37,8 @@ type DeleteObjectsReq struct {
 	Bucket       string   `json:"bucket"`
 	Keys         []string `json:"keys"`
 }
+
+type CreateBucketReq struct {
+	ConnectionId string `json:"connectionId"`
+	Bucket       string `json:"bucket"`
+}

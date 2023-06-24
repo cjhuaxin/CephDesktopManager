@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cjhuaxin/CephDesktopManager/backend/base"
 	"github.com/cjhuaxin/CephDesktopManager/backend/errcode"
@@ -76,6 +77,24 @@ func (s *Bucket) AddCustomBucket(req *models.AddCustomBucketReq) *models.BaseRes
 	if err != nil {
 		s.Log.Errorf("save the custom bucket to db failed: %v", err)
 		return s.BuildFailed(errcode.DatabaseErr, err.Error())
+	}
+
+	return s.BuildSucess(nil)
+}
+
+func (s *Bucket) CreateBucket(req *models.CreateBucketReq) *models.BaseResponse {
+	s3Clinet, ok := s.S3ClientMap[req.ConnectionId]
+	if !ok {
+		s.Log.Errorf("connection[%s] is lost", req.ConnectionId)
+		return s.BuildFailed(errcode.UnExpectedErr, "connection is lost,please re-connect")
+	}
+	input := &s3.CreateBucketInput{
+		Bucket: aws.String(req.Bucket),
+	}
+	_, err := s3Clinet.CreateBucket(s.GetTimeoutContext(), input)
+	if err != nil {
+		s.Log.Errorf("create bucket to db failed: %v", err)
+		return s.BuildFailed(errcode.CephErr, err.Error())
 	}
 
 	return s.BuildSucess(nil)
