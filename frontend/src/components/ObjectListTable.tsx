@@ -2,7 +2,7 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import PreviewIcon from '@mui/icons-material/Preview';
 import SecurityIcon from '@mui/icons-material/Security';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { AlertColor, Box, Breadcrumbs, Link, Pagination, PaginationItem, Typography } from '@mui/material';
+import { AlertColor, Box, Breadcrumbs, Button, Grid, Link, Pagination, PaginationItem, Typography } from '@mui/material';
 import { LinkProps } from '@mui/material/Link';
 import { styled } from '@mui/material/styles';
 import { DataGrid, GridActionsCellItem, GridColDef, GridRowId, GridValueFormatterParams } from '@mui/x-data-grid';
@@ -14,6 +14,7 @@ import { DownloadObjects, ListObjects } from "../../wailsjs/go/service/Object";
 import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_LIST_OBJECTS } from '../constants/Pubsub';
 import { ObjectItem } from '../dto/BackendRes';
 import { AlertEventBody, ListObjectsEventBody, ListObjectsItem } from '../dto/Frontend';
+import UploadButton from './UploadButton';
 
 const alertMsg = (alertType: AlertColor, msg: string) => {
     let alertBody: AlertEventBody = {
@@ -31,6 +32,7 @@ export default function ObjectListTable() {
     interface ItemLinkProps {
         folder: string;
         children: string;
+        updateBreadcrumbs: boolean;
     }
 
     interface PageInfo {
@@ -101,7 +103,7 @@ export default function ObjectListTable() {
                 //return the link
                 if (params.row.commonPrefix) {
                     return (
-                        <FolderLink folder={params.value}>
+                        <FolderLink folder={params.value} updateBreadcrumbs={true}>
                             {params.value}
                         </FolderLink>
                     );
@@ -143,17 +145,16 @@ export default function ObjectListTable() {
                             onClick={downloadObject(params.row)}
                         />,
                         <GridActionsCellItem
-                            disabled
-                            icon={<PreviewIcon />}
-                            label="Preview"
-                            onClick={previewObject(params.row)}
+                            icon={<DeleteIcon />}
+                            label="Delete"
+                            onClick={deleteObject(params.row)}
                             showInMenu
                         />,
                         <GridActionsCellItem
                             disabled
-                            icon={<DeleteIcon />}
-                            label="Delete"
-                            onClick={deleteObject(params.row)}
+                            icon={<PreviewIcon />}
+                            label="Preview"
+                            onClick={previewObject(params.row)}
                             showInMenu
                         />,
                     ]);
@@ -203,7 +204,17 @@ export default function ObjectListTable() {
             setDisplay("")
             connectionId.current = data.connectionId;
             bucket.current = data.bucket;
-            listRootObjects();
+            if (data.prefix && data.prefix != "") {
+                //handle folder click event
+                handleFolderClick({
+                    folder: data.prefix,
+                    children: data.prefix,
+                    updateBreadcrumbs: data.updateBreadcrumbs,
+                })
+            } else {
+                listRootObjects();
+            }
+
         })
     }
 
@@ -257,7 +268,8 @@ export default function ObjectListTable() {
             //the path under bucket
             let props: ItemLinkProps = {
                 folder: path,
-                children: ''
+                children: '',
+                updateBreadcrumbs: true,
             }
             handleFolderClick(props);
         } else {
@@ -268,11 +280,11 @@ export default function ObjectListTable() {
 
     const handleFolderClick = (props: ItemLinkProps) => {
         prefix.current = "";
-        //assemble the query prefix
         let stopIndex = breadcrumbs.findIndex(b => b.path === props.folder);
         if (stopIndex == -1) {
             stopIndex = breadcrumbs.length;
         }
+        //assemble the query prefix
         breadcrumbs.forEach((breadcrumb, i) => {
             if (i <= stopIndex) {
                 prefix.current += breadcrumb.path;
@@ -293,13 +305,14 @@ export default function ObjectListTable() {
                 let newBreadCrumb: LinkRouterProps = {
                     path: currentPath,
                 }
-
-                // Click on the breadcrumbs that don't exist, just add it to breadcrumbs list
-                if (stopIndex == breadcrumbs.length) {
-                    setBreadcrumbs(prev => [...prev, newBreadCrumb]);
-                } else {
-                    // Click on the breadcrumbs that exists, cutoff the sub path
-                    setBreadcrumbs(prev => prev.slice(0, stopIndex + 1));
+                if (props.updateBreadcrumbs) {
+                    // Click on the breadcrumbs that don't exist, just add it to breadcrumbs list
+                    if (stopIndex == breadcrumbs.length) {
+                        setBreadcrumbs(prev => [...prev, newBreadCrumb]);
+                    } else {
+                        // Click on the breadcrumbs that exists, cutoff the sub path
+                        setBreadcrumbs(prev => prev.slice(0, stopIndex + 1));
+                    }
                 }
 
                 // set page info
@@ -394,35 +407,42 @@ export default function ObjectListTable() {
 
     return (
         <Box sx={{ display: display }}>
-            <Breadcrumbs aria-label="breadcrumb" style={{ marginBottom: 10 }}>
-                <LinkRouter
-                    underline="hover"
-                    color="inherit"
-                    path=""
-                    sx={{ cursor: "pointer" }}
-                    onClick={handleClickBreadcrumb}
-                >
-                    {bucket.current}
-                </LinkRouter>
-                {breadcrumbs.map((value, index) => {
-                    const last = index === breadcrumbs.length - 1;
-                    return last ? (
-                        <Typography color="text.primary" key={value.path}>
-                            {value.path}
-                        </Typography>
-                    ) : (
+            <Grid container spacing={2}>
+                <Grid item xs={8}>
+                    <Breadcrumbs aria-label="breadcrumb" style={{ marginBottom: 10 }}>
                         <LinkRouter
                             underline="hover"
                             color="inherit"
-                            path={value.path}
+                            path=""
                             sx={{ cursor: "pointer" }}
                             onClick={handleClickBreadcrumb}
                         >
-                            {value.path}
+                            {bucket.current}
                         </LinkRouter>
-                    );
-                })}
-            </Breadcrumbs>
+                        {breadcrumbs.map((value, index) => {
+                            const last = index === breadcrumbs.length - 1;
+                            return last ? (
+                                <Typography color="text.primary" key={value.path}>
+                                    {value.path}
+                                </Typography>
+                            ) : (
+                                <LinkRouter
+                                    underline="hover"
+                                    color="inherit"
+                                    path={value.path}
+                                    sx={{ cursor: "pointer" }}
+                                    onClick={handleClickBreadcrumb}
+                                >
+                                    {value.path}
+                                </LinkRouter>
+                            );
+                        })}
+                    </Breadcrumbs>
+                </Grid>
+                <Grid item xs={4}>
+                    <UploadButton bucket={bucket} connectionId={connectionId} prefix={prefix} />
+                </Grid>
+            </Grid>
             <div style={{ height: '87vh', width: '100%' }}>
                 <DataGrid
                     pageSizeOptions={[PAGE_SIZE]}

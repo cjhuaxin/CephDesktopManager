@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.358.0",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.11.16",
@@ -28,6 +29,7 @@
     "use-react-router-breadcrumbs": "^4.0.1"
   },
   "devDependencies": {
+    "@types/node": "^20.3.1",
     "@types/pubsub-js": "^1.8.3",
     "@types/react": "^18.0.17",
     "@types/react-dom": "^18.0.6",

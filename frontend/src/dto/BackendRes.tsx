@@ -11,3 +11,13 @@ export interface ObjectItem {
     size: number;
     commonPrefix: boolean;
 }
+
+export interface ConnectionDetail {
+    id: string;
+    name: string
+    endpoint: string
+    accessKey: string
+    secretKey: string
+    region: string
+    pathStyle: number
+}

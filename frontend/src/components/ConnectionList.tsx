@@ -67,11 +67,11 @@ const ConnectionList = () => {
     }
 
     const handleBucketClick = (connectionId: string, bucket: string) => {
-        let alertBody: ListObjectsEventBody = {
+        setCurrentSelected(connectionId);
+        PubSub.publish(TOPIC_LIST_OBJECTS, {
             connectionId: connectionId,
             bucket: bucket
-        }
-        PubSub.publish(TOPIC_LIST_OBJECTS, alertBody);
+        });
     }
 
     const subscribeRefreshListEvent = () => {
@@ -103,7 +103,9 @@ const ConnectionList = () => {
                                 {expandMap.get(item.id) ? <ExpandLess /> : <ExpandMore />}
                             </ListItemButton>
                             <Collapse in={expandMap.get(item.id)} timeout="auto" unmountOnExit>
-                                <TreeView>
+                                <TreeView
+                                    selected={""}
+                                >
                                     {
                                         connectionBucketsMap.get(item.id)?.map((bucket: string) => (
                                             <TreeItem

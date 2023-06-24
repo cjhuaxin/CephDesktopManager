@@ -141,6 +141,41 @@ func (s *Object) DownloadObjects(req *models.DownloadObjectsReq) *models.BaseRes
 	return s.BuildSucess(s.Paths.DownloadDir)
 }
 
+func (s *Object) PrepareForUploading(req *models.PrepareForUploadingReq) *models.BaseResponse {
+	//query connection name for make directory
+	stmt, err := s.DbClient.Prepare("SELECT endpoint,ak,sk,region,path_style FROM connection WHERE id = ?")
+	if err != nil {
+		s.Log.Errorf("prepare sql statement failed: %v", err)
+		return s.BuildFailed(errcode.DatabaseErr, err.Error())
+	}
+	var endpoint, ak, sk, region string
+	var pathStyle int8
+	err = stmt.QueryRow(req.ConnectionId).Scan(&endpoint, &ak, &sk, &region, &pathStyle)
+	if err != nil {
+		s.Log.Errorf("query connection information failed: %v", err)
+		return s.BuildFailed(errcode.DatabaseErr, err.Error())
+	}
+
+	encryptionKey, err := s.QueryEncryptionKey()
+	if err != nil {
+		s.Log.Errorf("query encryption key failed: %v", err)
+		return s.BuildFailed(errcode.AesEncryptErr, err.Error())
+	}
+	rawSk, err := util.DecryptByAES(sk, encryptionKey)
+	if err != nil {
+		s.Log.Errorf("AES decrypt failed: %v", err)
+		return s.BuildFailed(errcode.AesEncryptErr, err.Error())
+	}
+
+	return s.BuildSucess(&models.ConnectionDetail{
+		Endpoint:  endpoint,
+		AccessKey: ak,
+		SecretKey: rawSk,
+		Region:    region,
+		PathStyle: pathStyle,
+	})
+}
+
 func (s *Object) makeTargetDirectory(connectionName, bucket, key string) (string, error) {
 	file := filepath.Join(s.Paths.DownloadDir, connectionName, bucket, key)
 	if err := os.MkdirAll(filepath.Dir(file), 0755); err != nil {

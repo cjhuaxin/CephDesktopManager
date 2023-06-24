@@ -30,6 +30,10 @@ export function ListObjects(arg1) {
   return window['go']['service']['Object']['ListObjects'](arg1);
 }
 
+export function PrepareForUploading(arg1) {
+  return window['go']['service']['Object']['PrepareForUploading'](arg1);
+}
+
 export function QueryEncryptionKey() {
   return window['go']['service']['Object']['QueryEncryptionKey']();
 }

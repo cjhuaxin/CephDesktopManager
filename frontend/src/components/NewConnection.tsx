@@ -12,7 +12,7 @@ import { ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_REFRESH_CONNECTION_LIST } from '
 import { AlertEventBody } from "../dto/Frontend";
 
 const fieldSx = { m: 1 };
-const pathStyleTitle =`For most of all privately deployed Object Storage Service(ceph/minio) Enable the client to use path-style addressing(https://192.168.1.10/BUCKET/KEY).
+const pathStyleTitle = `For most of all privately deployed Object Storage Service(ceph/minio) Enable the client to use path-style addressing(https://192.168.1.10/BUCKET/KEY).
                        For Cloud Object Storage service,set false will use virtual hosted bucket addressing when possible(https://BUCKET.s3.amazonaws.com/KEY).`
 
 export default function NewConnection() {
@@ -59,17 +59,16 @@ export default function NewConnection() {
         let req = new models.NewConnectionReq();
         req.name = connectionName;
         req.endpoint = endpoint;
-        req.accesskey = accessKey;
-        req.secretkey = secretKey;
+        req.accessKey = accessKey;
+        req.secretKey = secretKey;
         req.region = region;
         SaveS3Connection(req).then((result: models.BaseResponse) => {
             if (result.err_msg == "") {
-                let alertBody: AlertEventBody = {
+                //publish event to show success
+                PubSub.publish(TOPIC_ALERT, {
                     alertType: ALERT_TYPE_SUCCESS,
                     message: 'Save connection success'
-                }
-                //publish event to show success
-                PubSub.publish(TOPIC_ALERT, alertBody);
+                });
                 //publish event to refresh connection list
                 PubSub.publish(TOPIC_REFRESH_CONNECTION_LIST, null);
                 setOpen(false);
@@ -91,8 +90,8 @@ export default function NewConnection() {
         let req = new models.NewConnectionReq();
         req.name = connectionName;
         req.endpoint = endpoint;
-        req.accesskey = accessKey;
-        req.secretkey = secretKey;
+        req.accessKey = accessKey;
+        req.secretKey = secretKey;
         req.region = region;
 
         TestS3Connection(req).then((result: models.BaseResponse) => {

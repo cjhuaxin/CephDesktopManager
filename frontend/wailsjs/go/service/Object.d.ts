@@ -16,4 +16,6 @@ export function InitAndCacheS3Client(arg1:string):Promise<any>;
 
 export function ListObjects(arg1:any):Promise<any>;
 
+export function PrepareForUploading(arg1:any):Promise<any>;
+
 export function QueryEncryptionKey():Promise<string>;

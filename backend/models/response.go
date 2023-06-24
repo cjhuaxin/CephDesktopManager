@@ -26,3 +26,13 @@ type ObjectItem struct {
 	LastModified *time.Time `json:"lastModified"`
 	CommonPrefix bool       `json:"commonPrefix"`
 }
+
+type ConnectionDetail struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Endpoint  string `json:"endpoint"`
+	AccessKey string `json:"accessKey"`
+	SecretKey string `json:"secretKey"`
+	Region    string `json:"region"`
+	PathStyle int8   `json:"pathStyle"`
+}

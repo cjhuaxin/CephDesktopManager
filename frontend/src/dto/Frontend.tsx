@@ -8,6 +8,8 @@ export type AlertEventBody = {
 export type ListObjectsEventBody = {
     connectionId: string;
     bucket: string;
+    prefix: string;
+    updateBreadcrumbs: boolean;
 }
 
 export type ListObjectsItem = {

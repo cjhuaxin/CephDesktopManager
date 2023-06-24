@@ -1,12 +1,7 @@
 package models
 
 type NewConnectionReq struct {
-	Name      string `json:"name"`
-	Endpoint  string `json:"endpoint"`
-	AccessKey string `json:"accesskey"`
-	SecretKey string `json:"secretkey"`
-	Region    string `json:"region"`
-	PathStyle int8   `json:"pathstyle"`
+	ConnectionDetail
 }
 
 type ListBucketsReq struct {
@@ -31,4 +26,8 @@ type DownloadObjectsReq struct {
 type AddCustomBucketReq struct {
 	ConnectionId string `json:"connectionId"`
 	Bucket       string `json:"bucket"`
+}
+
+type PrepareForUploadingReq struct {
+	ConnectionId string `json:"connectionId"`
 }

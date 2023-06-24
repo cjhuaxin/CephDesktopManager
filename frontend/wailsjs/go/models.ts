@@ -81,12 +81,13 @@ export namespace models {
 	    }
 	}
 	export class NewConnectionReq {
+	    id: string;
 	    name: string;
 	    endpoint: string;
-	    accesskey: string;
-	    secretkey: string;
+	    accessKey: string;
+	    secretKey: string;
 	    region: string;
-	    pathstyle: number;
+	    pathStyle: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new NewConnectionReq(source);
@@ -94,12 +95,25 @@ export namespace models {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
 	        this.name = source["name"];
 	        this.endpoint = source["endpoint"];
-	        this.accesskey = source["accesskey"];
-	        this.secretkey = source["secretkey"];
+	        this.accessKey = source["accessKey"];
+	        this.secretKey = source["secretKey"];
 	        this.region = source["region"];
-	        this.pathstyle = source["pathstyle"];
+	        this.pathStyle = source["pathStyle"];
+	    }
+	}
+	export class PrepareForUploadingReq {
+	    connectionId: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PrepareForUploadingReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.connectionId = source["connectionId"];
 	    }
 	}
 
