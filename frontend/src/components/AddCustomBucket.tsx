@@ -16,7 +16,7 @@ export default function AddCustomBucket({ connectionId }: any) {
     const [bucketName, setBucketName] = React.useState("");
     const [bucketNameErrText, setBucketNameErrText] = React.useState("");
 
-    const initInput = () =>{
+    const initInput = () => {
         setBucketName("");
         setBucketNameErrText("");
     }
@@ -58,6 +58,10 @@ export default function AddCustomBucket({ connectionId }: any) {
         setOpen(true);
     }
 
+    const handleDialagClick = (event: any) => {
+        event.stopPropagation();
+    }
+
     return (
         <div>
             <Tooltip title="Add Custom Bucket">
@@ -70,6 +74,7 @@ export default function AddCustomBucket({ connectionId }: any) {
             </Tooltip>
             <Dialog
                 open={open}
+                onClick={handleDialagClick}
             >
                 <DialogTitle>Add Cusomt Bucket</DialogTitle>
                 <DialogContent>
