@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/cjhuaxin/CephDesktopManager/backend/base"
 	"github.com/cjhuaxin/CephDesktopManager/backend/errcode"
 	"github.com/cjhuaxin/CephDesktopManager/backend/models"
@@ -174,6 +175,37 @@ func (s *Object) PrepareForUploading(req *models.PrepareForUploadingReq) *models
 		Region:    region,
 		PathStyle: pathStyle,
 	})
+}
+
+func (s *Object) DeleteObjects(req *models.DeleteObjectsReq) *models.BaseResponse {
+	s3Clinet, ok := s.S3ClientMap[req.ConnectionId]
+	if !ok {
+		s.Log.Errorf("connection[%s] is lost", req.ConnectionId)
+		return s.BuildFailed(errcode.UnExpectedErr, "connection is lost,please re-connect")
+	}
+	identifiers := make([]types.ObjectIdentifier, 0, len(req.Keys))
+	for _, key := range req.Keys {
+		identifiers = append(identifiers, types.ObjectIdentifier{
+			Key: aws.String(key),
+		})
+	}
+	input := &s3.DeleteObjectsInput{
+		Bucket: aws.String(req.Bucket),
+		Delete: &types.Delete{
+			Objects: identifiers,
+		},
+	}
+	output, err := s3Clinet.DeleteObjects(s.GetTimeoutContext(), input)
+	if err != nil {
+		s.Log.Errorf("delete objects failed: %v", err)
+		return s.BuildFailed(errcode.CephErr, err.Error())
+	}
+	if len(output.Errors) != 0 {
+		s.Log.Errorf("delete objects failed: %v", output.Errors[0])
+		return s.BuildFailed(errcode.CephErr, *output.Errors[0].Message)
+	}
+
+	return s.BuildSucess(nil)
 }
 
 func (s *Object) makeTargetDirectory(connectionName, bucket, key string) (string, error) {

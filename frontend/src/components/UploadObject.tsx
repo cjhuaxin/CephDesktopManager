@@ -1,11 +1,11 @@
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Box, Button } from "@mui/material";
 import React from "react";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { PrepareForUploading } from "../../wailsjs/go/service/Object";
+import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_LIST_OBJECTS, TOPIC_LOADING } from "../constants/Pubsub";
 import { ConnectionDetail } from "../dto/BackendRes";
-import { TOPIC_ALERT, ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_LIST_OBJECTS, TOPIC_LOADING } from "../constants/Pubsub";
 
-export default function UploadButton({ bucket, connectionId, prefix }: any) {
+export default function UploadObject({ bucket, connectionId, prefix }: any) {
     const uploadInputRef = React.useRef<HTMLInputElement>(null);
 
     const handleUploadClick = () => {

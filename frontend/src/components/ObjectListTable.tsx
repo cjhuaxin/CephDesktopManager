@@ -10,11 +10,11 @@ import moment from 'moment';
 import prettyBytes from 'pretty-bytes';
 import * as React from 'react';
 import { models } from '../../wailsjs/go/models';
-import { DownloadObjects, ListObjects } from "../../wailsjs/go/service/Object";
+import { DeleteObjects, DownloadObjects, ListObjects } from "../../wailsjs/go/service/Object";
 import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_LIST_OBJECTS } from '../constants/Pubsub';
 import { ObjectItem } from '../dto/BackendRes';
 import { AlertEventBody, ListObjectsEventBody, ListObjectsItem } from '../dto/Frontend';
-import UploadButton from './UploadButton';
+import UploadObject from './UploadObject';
 
 const alertMsg = (alertType: AlertColor, msg: string) => {
     let alertBody: AlertEventBody = {
@@ -185,14 +185,29 @@ export default function ObjectListTable() {
         [],
     );
 
-    const previewObject = React.useCallback(
+    const deleteObject = React.useCallback(
         (row: ObjectItem) => () => {
-            console.log(row);
+            DeleteObjects({
+                connectionId: connectionId.current,
+                bucket: bucket.current,
+                keys: [row.realKey],
+            }).then((res) => {
+                if (res.err_msg == "") {
+                    alertMsg(ALERT_TYPE_SUCCESS, "Delete object[" + row.key + "] success");
+                    handleFolderClick({
+                        folder: prefix.current,
+                        children: prefix.current,
+                        updateBreadcrumbs: false,
+                    })
+                } else {
+                    alertMsg(ALERT_TYPE_ERROR, res.err_msg);
+                }
+            });
         },
         [],
     );
 
-    const deleteObject = React.useCallback(
+    const previewObject = React.useCallback(
         (row: ObjectItem) => () => {
             console.log(row);
         },
@@ -440,7 +455,7 @@ export default function ObjectListTable() {
                     </Breadcrumbs>
                 </Grid>
                 <Grid item xs={4}>
-                    <UploadButton bucket={bucket} connectionId={connectionId} prefix={prefix} />
+                    <UploadObject bucket={bucket} connectionId={connectionId} prefix={prefix} />
                 </Grid>
             </Grid>
             <div style={{ height: '87vh', width: '100%' }}>

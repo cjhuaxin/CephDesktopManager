@@ -31,3 +31,9 @@ type AddCustomBucketReq struct {
 type PrepareForUploadingReq struct {
 	ConnectionId string `json:"connectionId"`
 }
+
+type DeleteObjectsReq struct {
+	ConnectionId string   `json:"connectionId"`
+	Bucket       string   `json:"bucket"`
+	Keys         []string `json:"keys"`
+}

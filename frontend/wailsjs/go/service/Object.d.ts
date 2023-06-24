@@ -6,6 +6,8 @@ export function BuildFailed(arg1:string,arg2:string):Promise<any>;
 
 export function BuildSucess(arg1:any):Promise<any>;
 
+export function DeleteObjects(arg1:any):Promise<any>;
+
 export function DownloadObjects(arg1:any):Promise<any>;
 
 export function GetTimeoutContext():Promise<context.Context>;

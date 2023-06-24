@@ -39,6 +39,6 @@ func CreateS3ClientInstance(endpoint, ak, sk, region string, pathSytle int8) (*s
 
 func CreateS3Downloader(s3Client *s3.Client) *manager.Downloader {
 	return manager.NewDownloader(s3Client, func(d *manager.Downloader) {
-		d.PartSize = 10 * 1024 * 1024
+		d.PartSize = 5 * 1024 * 1024
 	})
 }

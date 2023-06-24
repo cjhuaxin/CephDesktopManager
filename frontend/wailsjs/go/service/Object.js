@@ -10,6 +10,10 @@ export function BuildSucess(arg1) {
   return window['go']['service']['Object']['BuildSucess'](arg1);
 }
 
+export function DeleteObjects(arg1) {
+  return window['go']['service']['Object']['DeleteObjects'](arg1);
+}
+
 export function DownloadObjects(arg1) {
   return window['go']['service']['Object']['DownloadObjects'](arg1);
 }
