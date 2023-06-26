@@ -1,13 +1,16 @@
 {
   "$schema": "https://wails.io/schemas/config.v2.json",
-  "name": "CephDesktopManager",
-  "outputfilename": "CephDesktopManager",
+  "name": "Ceph Desktop Manager",
+  "outputfilename": "Ceph Desktop Manager",
   "frontend:install": "npm install",
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
   "author": {
-    "name": "",
-    "email": ""
+    "name": "cjhuaxin",
+    "email": "cjhuaxin@gmail.com"
+  },
+  "info": {
+    "productVersion": "1.0.0"
   }
 }

@@ -8,12 +8,18 @@ import (
 	"os/user"
 	"path/filepath"
 	"reflect"
+	osRuntime "runtime"
 
 	"github.com/cjhuaxin/CephDesktopManager/backend/resource"
 	"github.com/cjhuaxin/CephDesktopManager/backend/service"
+	"github.com/tidwall/gjson"
 
 	"github.com/cjhuaxin/CephDesktopManager/backend/base"
+	"github.com/wailsapp/wails/v2/pkg/menu"
 	"github.com/wailsapp/wails/v2/pkg/options"
+	"github.com/wailsapp/wails/v2/pkg/options/linux"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
+	"github.com/wailsapp/wails/v2/pkg/options/windows"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -28,19 +34,22 @@ type App struct {
 	*base.Service
 }
 
-func WailsInit(assets embed.FS) *options.App {
+func WailsInit(assets embed.FS, wailsJson []byte) *options.App {
 	baseService := &base.Service{}
 	// Create an instance of the app structure
 	app := &App{
 		Service: baseService,
 	}
 	extraBindList := extraBinds(baseService)
-
+	version := gjson.GetBytes(wailsJson, "info.productVersion")
+	aboutTitle := "Ceph Desktop Manager"
+	aboutMessage := fmt.Sprintf("Version %s\n\n Copyright © 2022 cjhuaxin", version)
 	return &options.App{
 		Title:            resource.AppTitle,
 		Width:            1024,
 		Height:           768,
 		Assets:           assets,
+		Menu:             buildAppMenu(),
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup: func(ctx context.Context) {
 			err := app.onStart(ctx, extraBindList...)
@@ -50,6 +59,48 @@ func WailsInit(assets embed.FS) *options.App {
 			}
 		},
 		Bind: allBinds(app, extraBindList),
+		Windows: &windows.Options{
+			WebviewIsTransparent:              false,
+			WindowIsTranslucent:               false,
+			BackdropType:                      windows.Mica,
+			DisableWindowIcon:                 false,
+			DisableFramelessWindowDecorations: false,
+			Theme:                             windows.SystemDefault,
+			CustomTheme: &windows.ThemeSettings{
+				DarkModeTitleBar:   windows.RGB(20, 20, 20),
+				DarkModeTitleText:  windows.RGB(200, 200, 200),
+				DarkModeBorder:     windows.RGB(20, 0, 20),
+				LightModeTitleBar:  windows.RGB(200, 200, 200),
+				LightModeTitleText: windows.RGB(20, 20, 20),
+				LightModeBorder:    windows.RGB(200, 200, 200),
+			},
+		},
+		Mac: &mac.Options{
+			TitleBar: &mac.TitleBar{
+				TitlebarAppearsTransparent: false,
+				HideTitle:                  false,
+				HideTitleBar:               false,
+				FullSizeContent:            false,
+				UseToolbar:                 false,
+				HideToolbarSeparator:       true,
+			},
+			Appearance:           mac.NSAppearanceNameDarkAqua,
+			WebviewIsTransparent: true,
+			WindowIsTranslucent:  false,
+			About: &mac.AboutInfo{
+				Title:   aboutTitle,
+				Message: aboutMessage,
+				// Icon:    []byte{},
+			},
+		},
+		Linux: &linux.Options{
+			// Icon:                []byte{},
+			WindowIsTranslucent: false,
+			WebviewGpuPolicy:    linux.WebviewGpuPolicyAlways,
+		},
+		Debug: options.Debug{
+			OpenInspectorOnStartup: false,
+		},
 	}
 }
 
@@ -113,6 +164,20 @@ func (a *App) initDirectoryStructure() error {
 	}
 
 	return nil
+}
+
+func buildAppMenu() *menu.Menu {
+	appMenu := menu.NewMenu()
+	//main menu
+	appMenu.Append(menu.AppMenu())
+
+	// File menu
+	if osRuntime.GOOS == "darwin" {
+		// on macos platform, we should append EditMenu to enable Cmd+C,Cmd+V,Cmd+Z... shortcut
+		appMenu.Append(menu.EditMenu())
+	}
+
+	return appMenu
 }
 
 func (a *App) createFolderIfNotExists() error {

@@ -24,7 +24,7 @@ function App() {
     return (
         <ThemeProvider theme={cdmTheme}>
             <CssBaseline />
-            <Box sx={{ flexGrow: 1 }}>
+            <Box sx={{ flexGrow: 1}}>
                 <Grid container spacing={2} sx={{ mt: 2 }}>
                     <Grid xs={3}>
                         <FormControl fullWidth sx={{ ml: 4 }}>

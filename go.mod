@@ -7,6 +7,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/rs/xid v1.5.0
 	github.com/thanhpk/randstr v1.0.6
+	github.com/tidwall/gjson v1.9.3
 	github.com/wailsapp/wails/v2 v2.4.1
 	go.uber.org/zap v1.24.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -30,6 +31,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.19.2 // indirect
 	github.com/aws/smithy-go v1.13.5 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.0 // indirect
 	golang.org/x/net v0.7.0 // indirect
 )
 
