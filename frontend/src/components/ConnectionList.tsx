@@ -8,7 +8,7 @@ import * as React from 'react';
 import { models } from '../../wailsjs/go/models';
 import { DeleteBucket, ListBuckets } from "../../wailsjs/go/service/Bucket";
 import { DeleteConnection, GetSavedConnectionList } from "../../wailsjs/go/service/Connection";
-import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_CONFIRM, TOPIC_HIDE_OBJECTS_TABLE, TOPIC_LIST_OBJECTS, TOPIC_LOADING, TOPIC_REFRESH_BUCKET_LIST, TOPIC_REFRESH_CONNECTION_LIST } from '../constants/Pubsub';
+import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_CONFIRM, TOPIC_CHANGE_OBJECTS_TABLE_STATE, TOPIC_LIST_OBJECTS, TOPIC_LOADING, TOPIC_REFRESH_BUCKET_LIST, TOPIC_REFRESH_CONNECTION_LIST } from '../constants/Pubsub';
 import { BucketDetail, ConnectionItem } from '../dto/BackendRes';
 import ConnectionMore from './ConnectionMore';
 import CreateBucket from './CreateBucket';
@@ -29,7 +29,7 @@ const ConnectionList = () => {
         if (expandMap.get(itemId)) {
             setExpandMap(prev => new Map([...prev, [itemId, false]]));
             //hide the object list table
-            PubSub.publish(TOPIC_HIDE_OBJECTS_TABLE, "none");
+            PubSub.publish(TOPIC_CHANGE_OBJECTS_TABLE_STATE, "none");
             // clear bucket select state
             setCurrentSelectedBucket("");
         } else {
@@ -85,7 +85,7 @@ const ConnectionList = () => {
         let bucket = event.currentTarget.getAttribute("data-bucket")
         let custom = event.currentTarget.getAttribute("data-custom")
         PubSub.publish(TOPIC_CONFIRM, {
-            title: "Confirm",
+            title: "Important",
             content: "Confirm To Delete [" + bucket + "] Bucket ?",
             confirmCallback: () => {
                 DeleteBucket({
@@ -94,6 +94,8 @@ const ConnectionList = () => {
                     custom: JSON.parse(custom)
                 }).then(res => {
                     if (res.err_msg == "") {
+                        //hide the object list table
+                        PubSub.publish(TOPIC_CHANGE_OBJECTS_TABLE_STATE, "none");
                         PubSub.publish(TOPIC_ALERT, {
                             alertType: ALERT_TYPE_SUCCESS,
                             message: "Delete Bucket [" + bucket + "] Success"
@@ -104,6 +106,7 @@ const ConnectionList = () => {
                             alertType: ALERT_TYPE_ERROR,
                             message: res.err_msg
                         });
+
                     }
                 });
             }

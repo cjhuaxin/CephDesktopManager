@@ -93,7 +93,7 @@ export default function ConnectionMore({ connectionId, connectionName, hidden }:
         event.stopPropagation();
         setAnchorEl(null);
         PubSub.publish(TOPIC_CONFIRM, {
-            title: "Confirm",
+            title: "Important",
             content: "Confirm To Delete [" + connectionName + "] Connection ?",
             confirmCallback: () => {
                 DeleteConnection({

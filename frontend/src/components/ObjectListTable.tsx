@@ -1,17 +1,16 @@
+import DeleteIcon from '@mui/icons-material/Delete';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import PreviewIcon from '@mui/icons-material/Preview';
-import SecurityIcon from '@mui/icons-material/Security';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { AlertColor, Box, Breadcrumbs, Button, Grid, Link, Pagination, PaginationItem, Typography } from '@mui/material';
+import { AlertColor, Box, Breadcrumbs, Grid, Link, Pagination, PaginationItem, Typography } from '@mui/material';
 import { LinkProps } from '@mui/material/Link';
 import { styled } from '@mui/material/styles';
-import { DataGrid, GridActionsCellItem, GridColDef, GridRowId, GridValueFormatterParams } from '@mui/x-data-grid';
+import { DataGrid, GridActionsCellItem, GridColDef, GridValueFormatterParams } from '@mui/x-data-grid';
 import moment from 'moment';
 import prettyBytes from 'pretty-bytes';
 import * as React from 'react';
 import { models } from '../../wailsjs/go/models';
 import { DeleteObjects, DownloadObjects, ListObjects } from "../../wailsjs/go/service/Object";
-import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_HIDE_OBJECTS_TABLE, TOPIC_LIST_OBJECTS } from '../constants/Pubsub';
+import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_CHANGE_OBJECTS_TABLE_STATE, TOPIC_CONFIRM, TOPIC_LIST_OBJECTS } from '../constants/Pubsub';
 import { ObjectItem } from '../dto/BackendRes';
 import { AlertEventBody, ListObjectsEventBody, ListObjectsItem } from '../dto/Frontend';
 import UploadObject from './UploadObject';
@@ -187,20 +186,26 @@ export default function ObjectListTable() {
 
     const deleteObject = React.useCallback(
         (row: ObjectItem) => () => {
-            DeleteObjects({
-                connectionId: connectionId.current,
-                bucket: bucket.current,
-                keys: [row.realKey],
-            }).then((res) => {
-                if (res.err_msg == "") {
-                    alertMsg(ALERT_TYPE_SUCCESS, "Delete object[" + row.key + "] success");
-                    handleFolderClick({
-                        folder: prefix.current,
-                        children: prefix.current,
-                        updateBreadcrumbs: false,
-                    })
-                } else {
-                    alertMsg(ALERT_TYPE_ERROR, res.err_msg);
+            PubSub.publish(TOPIC_CONFIRM, {
+                title: "Important",
+                content: "Confirm To Delete [" + row.key + "] ?",
+                confirmCallback: () => {
+                    DeleteObjects({
+                        connectionId: connectionId.current,
+                        bucket: bucket.current,
+                        keys: [row.realKey],
+                    }).then((res) => {
+                        if (res.err_msg == "") {
+                            alertMsg(ALERT_TYPE_SUCCESS, "Delete object[" + row.key + "] success");
+                            handleFolderClick({
+                                folder: prefix.current,
+                                children: prefix.current,
+                                updateBreadcrumbs: false,
+                            })
+                        } else {
+                            alertMsg(ALERT_TYPE_ERROR, res.err_msg);
+                        }
+                    });
                 }
             });
         },
@@ -417,7 +422,7 @@ export default function ObjectListTable() {
     };
 
     const subscribeChangeObjectsTableStateEvent = () => {
-        PubSub.subscribe(TOPIC_HIDE_OBJECTS_TABLE, function (_, display: string) {
+        PubSub.subscribe(TOPIC_CHANGE_OBJECTS_TABLE_STATE, function (_, display: string) {
             setRowData(new Array<ListObjectsItem>);
             setDisplay(display);
         })
