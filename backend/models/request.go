@@ -42,3 +42,11 @@ type CreateBucketReq struct {
 	ConnectionId string `json:"connectionId"`
 	Bucket       string `json:"bucket"`
 }
+
+type EditConnectionReq struct {
+	ConnectionDetail
+}
+
+type DeleteConnectionReq struct {
+	ConnectionId string `json:"connectionId"`
+}

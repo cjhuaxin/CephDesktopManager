@@ -5,6 +5,13 @@ export type AlertEventBody = {
     message: string;
 }
 
+export type ConfirmEventBody = {
+    title: string;
+    content: string;
+    confirmCallback: () => void;
+}
+
+
 export type ListObjectsEventBody = {
     connectionId: string;
     bucket: string;

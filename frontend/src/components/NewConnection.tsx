@@ -57,11 +57,11 @@ export default function NewConnection() {
             return;
         }
         let req = new models.NewConnectionReq();
-        req.name = connectionName;
-        req.endpoint = endpoint;
-        req.accessKey = accessKey;
-        req.secretKey = secretKey;
-        req.region = region;
+        req.name = connectionName.trim();
+        req.endpoint = endpoint.trim();
+        req.accessKey = accessKey.trim();
+        req.secretKey = secretKey.trim();
+        req.region = region.trim();
         SaveS3Connection(req).then((result: models.BaseResponse) => {
             if (result.err_msg == "") {
                 //publish event to show success

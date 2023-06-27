@@ -6,6 +6,10 @@ export function BuildFailed(arg1:string,arg2:string):Promise<any>;
 
 export function BuildSucess(arg1:any):Promise<any>;
 
+export function DeleteConnection(arg1:any):Promise<any>;
+
+export function EditConnection(arg1:any):Promise<any>;
+
 export function GetSavedConnectionList():Promise<any>;
 
 export function GetTimeoutContext():Promise<context.Context>;

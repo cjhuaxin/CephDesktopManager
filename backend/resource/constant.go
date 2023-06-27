@@ -13,4 +13,6 @@ const (
 	DirPathlog      = "log"
 	DirPathTmp      = "tmp"
 	DirPathDownload = "download"
+
+	DatabaseFile  = "cdm.db"
 )

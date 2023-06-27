@@ -10,6 +10,14 @@ export function BuildSucess(arg1) {
   return window['go']['service']['Connection']['BuildSucess'](arg1);
 }
 
+export function DeleteConnection(arg1) {
+  return window['go']['service']['Connection']['DeleteConnection'](arg1);
+}
+
+export function EditConnection(arg1) {
+  return window['go']['service']['Connection']['EditConnection'](arg1);
+}
+
 export function GetSavedConnectionList() {
   return window['go']['service']['Connection']['GetSavedConnectionList']();
 }

@@ -6,6 +6,7 @@ import GlobalLoading from './components/GlobalLoading';
 import GlobalSnackbar from './components/GlobalSnackbar';
 import NewConnection from './components/NewConnection';
 import ObjectListTable from './components/ObjectListTable';
+import GlobalConfirm from './components/GlobalConfirm';
 
 const cdmTheme = createTheme({
     typography: {
@@ -24,9 +25,9 @@ function App() {
     return (
         <ThemeProvider theme={cdmTheme}>
             <CssBaseline />
-            <Box sx={{ flexGrow: 1}}>
+            <Box sx={{ flexGrow: 1 }}>
                 <Grid container spacing={2} sx={{ mt: 2 }}>
-                    <Grid xs={3}>
+                    <Grid xs={4}>
                         <FormControl fullWidth sx={{ ml: 4 }}>
                             <NewConnection />
                         </FormControl>
@@ -34,13 +35,14 @@ function App() {
                             <ConnectionList />
                         </FormControl>
                     </Grid>
-                    <Grid xs={9}>
+                    <Grid xs={8}>
                         <ObjectListTable />
                     </Grid>
                 </Grid>
             </Box>
             <GlobalSnackbar />
             <GlobalLoading />
+            <GlobalConfirm />
         </ThemeProvider>
     )
 }

@@ -1,17 +1,17 @@
 import StorageIcon from '@mui/icons-material/Storage';
+import BucketIcon from './icons/BucketIcon';
 import { IconButton, Tooltip } from '@mui/material';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import TextField from '@mui/material/TextField';
 import * as React from 'react';
 import { CreateBucket as CreateBucketApi } from "../../wailsjs/go/service/Bucket";
-import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT } from '../constants/Pubsub';
+import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_REFRESH_BUCKET_LIST } from '../constants/Pubsub';
 
-export default function CreateBucket({ connectionId }: any) {
+export default function CreateBucket({ connectionId, hidden }: any) {
     const [open, setOpen] = React.useState(false);
     const [bucketName, setBucketName] = React.useState("");
     const [bucketNameErrText, setBucketNameErrText] = React.useState("");
@@ -44,6 +44,9 @@ export default function CreateBucket({ connectionId }: any) {
                 });
                 setOpen(false);
                 initInput();
+                PubSub.publish(TOPIC_REFRESH_BUCKET_LIST, {
+                    connectionId
+                });
             } else {
                 PubSub.publish(TOPIC_ALERT, {
                     alertType: ALERT_TYPE_ERROR,
@@ -58,18 +61,18 @@ export default function CreateBucket({ connectionId }: any) {
         setOpen(true);
     }
 
-    const handleDialagClick = (event:any) => {
+    const handleDialagClick = (event: any) => {
         event.stopPropagation();
     }
 
     return (
-        <div>
+        <div hidden={hidden}>
             <Tooltip title="Create Bucket">
                 <IconButton
                     size="small"
                     onClick={handleClickCreateBucketBtn}
                 >
-                    <StorageIcon fontSize="inherit" />
+                    <BucketIcon fontSize="inherit" />
                 </IconButton>
             </Tooltip>
             <Dialog

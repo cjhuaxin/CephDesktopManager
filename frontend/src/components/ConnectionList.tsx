@@ -1,7 +1,5 @@
 import { ExpandLess, ExpandMore } from '@mui/icons-material';
-import TreeItem from '@mui/lab/TreeItem';
-import TreeView from '@mui/lab/TreeView';
-import { Box, Collapse, ListItemButton, ListItemText } from '@mui/material';
+import { Box, Collapse, Divider, ListItemButton, ListItemText } from '@mui/material';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import PubSub from "pubsub-js";
@@ -9,23 +7,24 @@ import * as React from 'react';
 import { models } from '../../wailsjs/go/models';
 import { ListBuckets } from "../../wailsjs/go/service/Bucket";
 import { GetSavedConnectionList } from "../../wailsjs/go/service/Connection";
-import { ALERT_TYPE_ERROR, TOPIC_ALERT, TOPIC_LIST_OBJECTS, TOPIC_LOADING } from '../constants/Pubsub';
+import { ALERT_TYPE_ERROR, TOPIC_ALERT, TOPIC_LIST_OBJECTS, TOPIC_LOADING, TOPIC_REFRESH_BUCKET_LIST, TOPIC_REFRESH_CONNECTION_LIST } from '../constants/Pubsub';
 import { ConnectionItem } from '../dto/BackendRes';
-import { AlertEventBody, ListObjectsEventBody } from '../dto/Frontend';
-import AddCustomBucket from './AddCustomBucket';
+import ConnectionMore from './ConnectionMore';
 import CreateBucket from './CreateBucket';
+import GlobalConfirm from './GlobalConfirm';
 
 const ConnectionList = () => {
 
     // state definitions
     const [connectionList, setConnectionList] = React.useState(Array<ConnectionItem>);
-    const [currentSelected, setCurrentSelected] = React.useState("");
+    const [currentSelectedConn, setCurrentSelectedConn] = React.useState("");
+    const [currentSelectedBucket, setCurrentSelectedBucket] = React.useState("");
     const [expandMap, setExpandMap] = React.useState(new Map<string, boolean>());
     const [connectionBucketsMap, setConnectionBucketsMap] = React.useState(new Map<string, string[]>());
 
     const handleClickItem = (event: any) => {
         let itemId = event.currentTarget.getAttribute("data-item-id")
-        setCurrentSelected(itemId)
+        setCurrentSelectedConn(itemId)
         //change the expand state
         if (expandMap.get(itemId)) {
             setExpandMap(prev => new Map([...prev, [itemId, false]]));
@@ -68,22 +67,30 @@ const ConnectionList = () => {
     }
 
     const handleBucketClick = (connectionId: string, bucket: string) => {
-        setCurrentSelected(connectionId);
+        setCurrentSelectedConn(connectionId);
+        setCurrentSelectedBucket(bucket);
         PubSub.publish(TOPIC_LIST_OBJECTS, {
             connectionId: connectionId,
             bucket: bucket
         });
     }
 
-    const subscribeRefreshListEvent = () => {
-        PubSub.subscribe(TOPIC_ALERT, function () {
+    const subscribeRefreshConnectionsEvent = () => {
+        PubSub.subscribe(TOPIC_REFRESH_CONNECTION_LIST, function () {
             queryConnectionList();
+        })
+    }
+
+    const subscribeRefreshBucketsEvent = () => {
+        PubSub.subscribe(TOPIC_REFRESH_BUCKET_LIST, function (_, connectionId: string) {
+            listBuckets(connectionId);
         })
     }
 
     React.useEffect(() => {
         queryConnectionList();
-        subscribeRefreshListEvent();
+        subscribeRefreshConnectionsEvent();
+        subscribeRefreshBucketsEvent();
     }, []);
 
     return (
@@ -95,30 +102,43 @@ const ConnectionList = () => {
                             key={item.id}
                             style={{ display: 'block' }}
                         >
+                            <Divider />
                             <ListItemButton
-                                selected={item.id === currentSelected}
+                                selected={item.id === currentSelectedConn}
                                 data-item-id={item.id}
                                 onClick={handleClickItem}>
                                 <ListItemText primary={item.name} />
-                                <CreateBucket connectionId={item.id} />
-                                <AddCustomBucket connectionId={item.id} />
+                                <CreateBucket connectionId={item.id} hidden={!expandMap.get(item.id)} />
+                                <ConnectionMore connectionId={item.id} connectionName={item.name} hidden={!expandMap.get(item.id)} />
                                 {expandMap.get(item.id) ? <ExpandLess /> : <ExpandMore />}
                             </ListItemButton>
                             <Collapse in={expandMap.get(item.id)} timeout="auto" unmountOnExit>
-                                <TreeView
-                                    selected={""}
+                                <List
+                                    component="div"
                                 >
                                     {
                                         connectionBucketsMap.get(item.id)?.map((bucket: string) => (
-                                            <TreeItem
-                                                nodeId={item.id + "_" + bucket}
-                                                label={bucket}
-                                                onClick={() => handleBucketClick(item.id, bucket)}
+                                            <ListItem
+                                                key={item.id}
+                                                style={{ display: 'block' }}
+                                                sx={{
+                                                    maxHeight: 40,
+                                                }}
                                             >
-                                            </TreeItem>
+                                                <ListItemButton
+                                                    sx={{
+                                                        pl: 2,
+                                                        maxHeight: 40,
+                                                    }}
+                                                    selected={bucket === currentSelectedBucket}
+                                                    onClick={() => handleBucketClick(item.id, bucket)}
+                                                >
+                                                    <ListItemText primary={bucket} />
+                                                </ListItemButton>
+                                            </ListItem>
                                         ))
                                     }
-                                </TreeView>
+                                </List>
                             </Collapse>
                         </ListItem>
                     ))

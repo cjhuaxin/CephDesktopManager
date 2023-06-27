@@ -44,6 +44,18 @@ export namespace models {
 	        this.bucket = source["bucket"];
 	    }
 	}
+	export class DeleteConnectionReq {
+	    connectionId: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DeleteConnectionReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.connectionId = source["connectionId"];
+	    }
+	}
 	export class DeleteObjectsReq {
 	    connectionId: string;
 	    bucket: string;
@@ -74,6 +86,30 @@ export namespace models {
 	        this.connectionId = source["connectionId"];
 	        this.bucket = source["bucket"];
 	        this.keys = source["keys"];
+	    }
+	}
+	export class EditConnectionReq {
+	    id: string;
+	    name: string;
+	    endpoint: string;
+	    accessKey: string;
+	    secretKey: string;
+	    region: string;
+	    pathStyle: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new EditConnectionReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.endpoint = source["endpoint"];
+	        this.accessKey = source["accessKey"];
+	        this.secretKey = source["secretKey"];
+	        this.region = source["region"];
+	        this.pathStyle = source["pathStyle"];
 	    }
 	}
 	export class ListBucketsReq {

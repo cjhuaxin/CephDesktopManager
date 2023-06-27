@@ -37,7 +37,7 @@ func (s *Connection) Init() error {
 }
 
 func (s *Connection) initDbClient() error {
-	db, err := sql.Open("sqlite3", filepath.Join(s.Paths.DbDir, "cdm.db"))
+	db, err := sql.Open("sqlite3", filepath.Join(s.Paths.DbDir, resource.DatabaseFile))
 	if err != nil {
 		s.Log.Errorf("open database error: %v", err)
 		return err
@@ -76,25 +76,11 @@ func (s *Connection) TestS3Connection(req *models.NewConnectionReq) *models.Base
 }
 
 func (s *Connection) SaveS3Connection(req *models.NewConnectionReq) *models.BaseResponse {
-	normalizedEndpoint, err := util.NormalizeUrls(req.Endpoint)
+	normalizedEndpoint, encrypedSk, region, err := s.prepareSaveConnection(req.Endpoint, req.SecretKey, req.Region)
 	if err != nil {
-		return s.BuildFailed(errcode.InvalidEndpointErr, err.Error())
-	}
-	region := req.Region
-	if region == "" {
-		region = resource.DefaultRegion
+		return s.BuildFailed(errcode.DatabaseErr, "prepare save connection failed")
 	}
 	connectionId := xid.New().String()
-	encryptionKey, err := s.QueryEncryptionKey()
-	if err != nil {
-		s.Log.Errorf("query encryption key failed: %v", err)
-		return s.BuildFailed(errcode.AesEncryptErr, err.Error())
-	}
-	encrypedSk, err := util.EncryptByAES(req.SecretKey, encryptionKey)
-	if err != nil {
-		s.Log.Errorf("AES encrypt failed: %v", err)
-		return s.BuildFailed(errcode.AesEncryptErr, err.Error())
-	}
 	_, err = s.DbClient.Exec(
 		fmt.Sprintf("INSERT INTO connection(id,name,endpoint,ak,sk,region,path_style) values('%s','%s','%s','%s','%s','%s','%d')",
 			connectionId, req.Name, normalizedEndpoint, req.AccessKey, encrypedSk, region, req.PathStyle))
@@ -129,6 +115,80 @@ func (s *Connection) GetSavedConnectionList() *models.BaseResponse {
 	}
 
 	return s.BuildSucess(connectionList)
+}
+
+func (s *Connection) EditConnection(req *models.EditConnectionReq) *models.BaseResponse {
+	normalizedEndpoint, encrypedSk, region, err := s.prepareSaveConnection(req.Endpoint, req.SecretKey, req.Region)
+	if err != nil {
+		return s.BuildFailed(errcode.DatabaseErr, "prepare save connection failed")
+	}
+	_, err = s.DbClient.Exec(
+		fmt.Sprintf("UPDATE connection SET name = '%s',endpoint = '%s',ak = '%s',sk = '%s',region = '%s',path_style = %d WHERE id = '%s'",
+			req.Name, normalizedEndpoint, req.AccessKey, encrypedSk, region, req.PathStyle, req.ID))
+	if err != nil {
+		s.Log.Errorf("update connection[%s] info to db failed: %v", req.ID, err)
+		return s.BuildFailed(errcode.DatabaseErr, err.Error())
+	}
+
+	return s.BuildSucess(nil)
+}
+
+func (s *Connection) DeleteConnection(req *models.DeleteConnectionReq) *models.BaseResponse {
+	tx, err := s.DbClient.Begin()
+	if err != nil {
+		s.Log.Errorf("begin tx failed: %v", err)
+		return s.BuildFailed(errcode.DatabaseErr, err.Error())
+	}
+
+	defer func() {
+		if err == nil {
+			err = tx.Commit()
+			if err != nil {
+				s.Log.Errorf("tx commit failed: %v", err)
+			}
+		} else {
+			err = tx.Rollback()
+			if err != nil {
+				s.Log.Errorf("tx rollback failed: %v", err)
+			}
+		}
+	}()
+
+	_, err = tx.Exec(fmt.Sprintf("DELETE FROM custom_bucket WHERE connection_id = '%s'", req.ConnectionId))
+	if err != nil {
+		s.Log.Errorf("delete custom bucket failed: %v", err)
+		return s.BuildFailed(errcode.DatabaseErr, err.Error())
+	}
+	_, err = tx.Exec(fmt.Sprintf("DELETE FROM connection WHERE id = '%s'", req.ConnectionId))
+	if err != nil {
+		s.Log.Errorf("delete connection failed: %v", err)
+		return s.BuildFailed(errcode.DatabaseErr, err.Error())
+	}
+
+	return s.BuildSucess(nil)
+}
+
+func (s *Connection) prepareSaveConnection(endpoint, secretKey, region string) (string, string, string, error) {
+	normalizedEndpoint, err := util.NormalizeUrls(endpoint)
+	if err != nil {
+		return "", "", "", err
+	}
+	if region == "" {
+		region = resource.DefaultRegion
+	}
+
+	encryptionKey, err := s.QueryEncryptionKey()
+	if err != nil {
+		s.Log.Errorf("query encryption key failed: %v", err)
+		return "", "", "", err
+	}
+	encrypedSk, err := util.EncryptByAES(secretKey, encryptionKey)
+	if err != nil {
+		s.Log.Errorf("AES encrypt failed: %v", err)
+		return "", "", "", err
+	}
+
+	return normalizedEndpoint, encrypedSk, region, nil
 }
 
 func initTable(db *sql.DB) error {
