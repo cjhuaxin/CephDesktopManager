@@ -1,11 +1,12 @@
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditCalendarIcon from '@mui/icons-material/EditCalendar';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, ListItemIcon, Menu, MenuItem, TextField, Typography } from "@mui/material";
 import React from "react";
 import { AddCustomBucket } from '../../wailsjs/go/service/Bucket';
-import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_CONFIRM, TOPIC_REFRESH_CONNECTION_LIST } from '../constants/Pubsub';
-import AddCustomBucketIcon from './icons/AddCustomBucketIcon';
 import { DeleteConnection } from '../../wailsjs/go/service/Connection';
+import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_CONFIRM, TOPIC_CONNECTION_DETAIL, TOPIC_REFRESH_CONNECTION_LIST } from '../constants/Pubsub';
+import AddCustomBucketIcon from './icons/AddCustomBucketIcon';
 
 export default function ConnectionMore({ connectionId, connectionName, hidden }: any) {
 
@@ -79,6 +80,15 @@ export default function ConnectionMore({ connectionId, connectionName, hidden }:
         setOpenCustomBucketDialog(true);
     }
 
+    const handleClickEditConnBtn = (event: any) => {
+        event.stopPropagation();
+        setAnchorEl(null);
+        PubSub.publish(TOPIC_CONNECTION_DETAIL, {
+            title: "Edit S3 Protocol Connection",
+            connectionId: connectionId,
+        });
+    }
+
     const handleClickDeleteConnBtn = (event: any) => {
         event.stopPropagation();
         setAnchorEl(null);
@@ -131,6 +141,12 @@ export default function ConnectionMore({ connectionId, connectionName, hidden }:
                         <AddCustomBucketIcon fontSize="small" />
                     </ListItemIcon>
                     <Typography variant="caption" display="block">Add Custom Bucket</Typography>
+                </MenuItem>
+                <MenuItem onClick={handleClickEditConnBtn}>
+                    <ListItemIcon>
+                        <EditCalendarIcon fontSize="small" />
+                    </ListItemIcon>
+                    <Typography variant="caption" display="block">Edit Connection</Typography>
                 </MenuItem>
                 <MenuItem onClick={handleClickDeleteConnBtn}>
                     <ListItemIcon>

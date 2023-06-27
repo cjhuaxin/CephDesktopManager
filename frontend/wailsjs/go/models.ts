@@ -88,28 +88,16 @@ export namespace models {
 	        this.keys = source["keys"];
 	    }
 	}
-	export class EditConnectionReq {
-	    id: string;
-	    name: string;
-	    endpoint: string;
-	    accessKey: string;
-	    secretKey: string;
-	    region: string;
-	    pathStyle: number;
+	export class GetConnectionDetailReq {
+	    connectionId: string;
 	
 	    static createFrom(source: any = {}) {
-	        return new EditConnectionReq(source);
+	        return new GetConnectionDetailReq(source);
 	    }
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.id = source["id"];
-	        this.name = source["name"];
-	        this.endpoint = source["endpoint"];
-	        this.accessKey = source["accessKey"];
-	        this.secretKey = source["secretKey"];
-	        this.region = source["region"];
-	        this.pathStyle = source["pathStyle"];
+	        this.connectionId = source["connectionId"];
 	    }
 	}
 	export class ListBucketsReq {

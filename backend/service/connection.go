@@ -80,13 +80,34 @@ func (s *Connection) SaveS3Connection(req *models.NewConnectionReq) *models.Base
 	if err != nil {
 		return s.BuildFailed(errcode.DatabaseErr, "prepare save connection failed")
 	}
-	connectionId := xid.New().String()
-	_, err = s.DbClient.Exec(
-		fmt.Sprintf("INSERT INTO connection(id,name,endpoint,ak,sk,region,path_style) values('%s','%s','%s','%s','%s','%s','%d')",
-			connectionId, req.Name, normalizedEndpoint, req.AccessKey, encrypedSk, region, req.PathStyle))
-	if err != nil {
-		s.Log.Errorf("save the connection info to db failed: %v", err)
-		return s.BuildFailed(errcode.DatabaseErr, err.Error())
+
+	if req.ID == "" {
+		//create a new connection
+		connectionId := xid.New().String()
+		_, err = s.DbClient.Exec(
+			fmt.Sprintf("INSERT INTO connection(id,name,endpoint,ak,sk,region,path_style) values('%s','%s','%s','%s','%s','%s','%d')",
+				connectionId, req.Name, normalizedEndpoint, req.AccessKey, encrypedSk, region, req.PathStyle))
+		if err != nil {
+			s.Log.Errorf("save the connection info to db failed: %v", err)
+			return s.BuildFailed(errcode.DatabaseErr, err.Error())
+		}
+	} else {
+		// edit the connection
+		_, err = s.DbClient.Exec(
+			fmt.Sprintf("UPDATE connection SET name = '%s',endpoint = '%s',ak = '%s',sk = '%s',region = '%s',path_style = %d WHERE id = '%s'",
+				req.Name, normalizedEndpoint, req.AccessKey, encrypedSk, region, req.PathStyle, req.ID))
+		if err != nil {
+			s.Log.Errorf("update connection[%s] info to db failed: %v", req.ID, err)
+			return s.BuildFailed(errcode.DatabaseErr, err.Error())
+		}
+		//create a new s3 client for cache
+		s3Client, err := util.CreateS3ClientInstance(normalizedEndpoint, req.AccessKey, req.SecretKey, region, req.PathStyle)
+		if err != nil {
+			s.Log.Errorf("create s3 client failed: %v", req.ID, err)
+			return s.BuildFailed(errcode.CephErr, err.Error())
+		}
+
+		s.S3ClientMap[req.ID] = s3Client
 	}
 
 	return s.BuildSucess(nil)
@@ -115,22 +136,6 @@ func (s *Connection) GetSavedConnectionList() *models.BaseResponse {
 	}
 
 	return s.BuildSucess(connectionList)
-}
-
-func (s *Connection) EditConnection(req *models.EditConnectionReq) *models.BaseResponse {
-	normalizedEndpoint, encrypedSk, region, err := s.prepareSaveConnection(req.Endpoint, req.SecretKey, req.Region)
-	if err != nil {
-		return s.BuildFailed(errcode.DatabaseErr, "prepare save connection failed")
-	}
-	_, err = s.DbClient.Exec(
-		fmt.Sprintf("UPDATE connection SET name = '%s',endpoint = '%s',ak = '%s',sk = '%s',region = '%s',path_style = %d WHERE id = '%s'",
-			req.Name, normalizedEndpoint, req.AccessKey, encrypedSk, region, req.PathStyle, req.ID))
-	if err != nil {
-		s.Log.Errorf("update connection[%s] info to db failed: %v", req.ID, err)
-		return s.BuildFailed(errcode.DatabaseErr, err.Error())
-	}
-
-	return s.BuildSucess(nil)
 }
 
 func (s *Connection) DeleteConnection(req *models.DeleteConnectionReq) *models.BaseResponse {
@@ -166,6 +171,44 @@ func (s *Connection) DeleteConnection(req *models.DeleteConnectionReq) *models.B
 	}
 
 	return s.BuildSucess(nil)
+}
+
+func (s *Connection) GetConnectionDetail(req *models.GetConnectionDetailReq) *models.BaseResponse {
+	stmt, err := s.DbClient.Prepare("SELECT name,endpoint,ak,sk,region,path_style FROM connection WHERE id = ?")
+	if err != nil {
+		s.Log.Errorf("prepare sql statement failed: %v", err)
+		return s.BuildFailed(errcode.DatabaseErr, err.Error())
+	}
+	var name, endpoint, ak, sk, region string
+	var pathStyle int8
+	err = stmt.QueryRow(req.ConnectionId).Scan(&name, &endpoint, &ak, &sk, &region, &pathStyle)
+	if err != nil {
+		s.Log.Errorf("query connection detail failed: %v", err)
+		return s.BuildFailed(errcode.DatabaseErr, err.Error())
+	}
+	//query encryption key
+	encryptionKey, err := s.QueryEncryptionKey()
+	if err != nil {
+		s.Log.Errorf("query encryption key failed: %v", err)
+		return s.BuildFailed(errcode.DatabaseErr, err.Error())
+	}
+
+	// decypte the encyption key
+	rawSk, err := util.DecryptByAES(sk, encryptionKey)
+	if err != nil {
+		s.Log.Errorf("decrypt sk[%s] failed: %v", sk, err)
+		return s.BuildFailed(errcode.AesEncryptErr, err.Error())
+	}
+
+	return s.BuildSucess(&models.ConnectionDetail{
+		ID:        req.ConnectionId,
+		Name:      name,
+		Endpoint:  endpoint,
+		AccessKey: ak,
+		SecretKey: rawSk,
+		Region:    region,
+		PathStyle: pathStyle,
+	})
 }
 
 func (s *Connection) prepareSaveConnection(endpoint, secretKey, region string) (string, string, string, error) {

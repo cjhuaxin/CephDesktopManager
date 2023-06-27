@@ -11,6 +11,11 @@ export type ConfirmEventBody = {
     confirmCallback: () => void;
 }
 
+export type ConnectionDetailEventBody = {
+    title: string;
+    connectionId: string;
+}
+
 
 export type ListObjectsEventBody = {
     connectionId: string;

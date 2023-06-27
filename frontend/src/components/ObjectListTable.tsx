@@ -11,7 +11,7 @@ import prettyBytes from 'pretty-bytes';
 import * as React from 'react';
 import { models } from '../../wailsjs/go/models';
 import { DeleteObjects, DownloadObjects, ListObjects } from "../../wailsjs/go/service/Object";
-import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_LIST_OBJECTS } from '../constants/Pubsub';
+import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_HIDE_OBJECTS_TABLE, TOPIC_LIST_OBJECTS } from '../constants/Pubsub';
 import { ObjectItem } from '../dto/BackendRes';
 import { AlertEventBody, ListObjectsEventBody, ListObjectsItem } from '../dto/Frontend';
 import UploadObject from './UploadObject';
@@ -416,8 +416,16 @@ export default function ObjectListTable() {
         });
     };
 
+    const subscribeChangeObjectsTableStateEvent = () => {
+        PubSub.subscribe(TOPIC_HIDE_OBJECTS_TABLE, function (_, display: string) {
+            setRowData(new Array<ListObjectsItem>);
+            setDisplay(display);
+        })
+    }
+
     React.useEffect(() => {
         subscribeListObjectEvent();
+        subscribeChangeObjectsTableStateEvent();
     }, []);
 
     return (

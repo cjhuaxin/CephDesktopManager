@@ -14,8 +14,8 @@ export function DeleteConnection(arg1) {
   return window['go']['service']['Connection']['DeleteConnection'](arg1);
 }
 
-export function EditConnection(arg1) {
-  return window['go']['service']['Connection']['EditConnection'](arg1);
+export function GetConnectionDetail(arg1) {
+  return window['go']['service']['Connection']['GetConnectionDetail'](arg1);
 }
 
 export function GetSavedConnectionList() {

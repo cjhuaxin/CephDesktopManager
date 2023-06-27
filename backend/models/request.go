@@ -50,3 +50,7 @@ type EditConnectionReq struct {
 type DeleteConnectionReq struct {
 	ConnectionId string `json:"connectionId"`
 }
+
+type GetConnectionDetailReq struct {
+	ConnectionId string `json:"connectionId"`
+}

@@ -7,11 +7,10 @@ import * as React from 'react';
 import { models } from '../../wailsjs/go/models';
 import { ListBuckets } from "../../wailsjs/go/service/Bucket";
 import { GetSavedConnectionList } from "../../wailsjs/go/service/Connection";
-import { ALERT_TYPE_ERROR, TOPIC_ALERT, TOPIC_LIST_OBJECTS, TOPIC_LOADING, TOPIC_REFRESH_BUCKET_LIST, TOPIC_REFRESH_CONNECTION_LIST } from '../constants/Pubsub';
+import { ALERT_TYPE_ERROR, TOPIC_ALERT, TOPIC_HIDE_OBJECTS_TABLE, TOPIC_LIST_OBJECTS, TOPIC_LOADING, TOPIC_REFRESH_BUCKET_LIST, TOPIC_REFRESH_CONNECTION_LIST } from '../constants/Pubsub';
 import { ConnectionItem } from '../dto/BackendRes';
 import ConnectionMore from './ConnectionMore';
 import CreateBucket from './CreateBucket';
-import GlobalConfirm from './GlobalConfirm';
 
 const ConnectionList = () => {
 
@@ -28,6 +27,10 @@ const ConnectionList = () => {
         //change the expand state
         if (expandMap.get(itemId)) {
             setExpandMap(prev => new Map([...prev, [itemId, false]]));
+            //hide the object list table
+            PubSub.publish(TOPIC_HIDE_OBJECTS_TABLE, "none");
+            // clear bucket select state
+            setCurrentSelectedBucket("");
         } else {
             //list buckets
             listBuckets(itemId);
@@ -108,8 +111,8 @@ const ConnectionList = () => {
                                 data-item-id={item.id}
                                 onClick={handleClickItem}>
                                 <ListItemText primary={item.name} />
-                                <CreateBucket connectionId={item.id} hidden={!expandMap.get(item.id)} />
-                                <ConnectionMore connectionId={item.id} connectionName={item.name} hidden={!expandMap.get(item.id)} />
+                                <CreateBucket connectionId={item.id} />
+                                <ConnectionMore connectionId={item.id} connectionName={item.name} />
                                 {expandMap.get(item.id) ? <ExpandLess /> : <ExpandMore />}
                             </ListItemButton>
                             <Collapse in={expandMap.get(item.id)} timeout="auto" unmountOnExit>
