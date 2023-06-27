@@ -42,7 +42,7 @@ func (s *Bucket) ListBuckets(req *models.ListBucketsReq) *models.BaseResponse {
 		s.Log.Errorf("list buckets error: %v", err)
 		return s.BuildFailed(errcode.CephErr, err.Error())
 	}
-	bucketList := make([]string, 0)
+	bucketList := make([]*models.BucketDetail, 0)
 
 	// query custom buckets
 	rows, err := s.DbClient.Query("SELECT id, name from custom_bucket WHERE connection_id = ?", req.ConnectionId)
@@ -60,11 +60,17 @@ func (s *Bucket) ListBuckets(req *models.ListBucketsReq) *models.BaseResponse {
 			s.Log.Errorf("scan custom bucket failed: %v", err)
 			continue
 		}
-		bucketList = append(bucketList, name)
+		bucketList = append(bucketList, &models.BucketDetail{
+			Bucket: name,
+			Custom: true,
+		})
 	}
 
 	for _, bucket := range output.Buckets {
-		bucketList = append(bucketList, *bucket.Name)
+		bucketList = append(bucketList, &models.BucketDetail{
+			Bucket: *bucket.Name,
+			Custom: false,
+		})
 	}
 
 	return s.BuildSucess(bucketList)
@@ -95,6 +101,33 @@ func (s *Bucket) CreateBucket(req *models.CreateBucketReq) *models.BaseResponse 
 	if err != nil {
 		s.Log.Errorf("create bucket to db failed: %v", err)
 		return s.BuildFailed(errcode.CephErr, err.Error())
+	}
+
+	return s.BuildSucess(nil)
+}
+
+func (s *Bucket) DeleteBucket(req *models.DeleteBucketReq) *models.BaseResponse {
+	if req.Custom {
+		// only delete the custom bucket
+		_, err := s.DbClient.Exec(fmt.Sprintf("DELETE FROM custom_bucket WHERE connection_id = '%s'", req.ConnectionId))
+		if err != nil {
+			s.Log.Errorf("delete custom bucket failed: %v", err)
+			return s.BuildFailed(errcode.DatabaseErr, err.Error())
+		}
+	} else {
+		// delete the real bucket
+		s3Clinet, ok := s.S3ClientMap[req.ConnectionId]
+		if !ok {
+			s.Log.Errorf("connection[%s] is lost", req.ConnectionId)
+			return s.BuildFailed(errcode.UnExpectedErr, "connection is lost,please re-connect")
+		}
+		_, err := s3Clinet.DeleteBucket(s.GetTimeoutContext(), &s3.DeleteBucketInput{
+			Bucket: aws.String(req.Bucket),
+		})
+		if err != nil {
+			s.Log.Errorf("delete bucket[%s] failed: %v", req.Bucket, err)
+			return s.BuildFailed(errcode.CephErr, err.Error())
+		}
 	}
 
 	return s.BuildSucess(nil)

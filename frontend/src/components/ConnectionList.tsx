@@ -1,14 +1,15 @@
 import { ExpandLess, ExpandMore } from '@mui/icons-material';
-import { Box, Collapse, Divider, ListItemButton, ListItemText } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { Box, Collapse, Divider, IconButton, ListItemButton, ListItemText } from '@mui/material';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import PubSub from "pubsub-js";
 import * as React from 'react';
 import { models } from '../../wailsjs/go/models';
-import { ListBuckets } from "../../wailsjs/go/service/Bucket";
-import { GetSavedConnectionList } from "../../wailsjs/go/service/Connection";
-import { ALERT_TYPE_ERROR, TOPIC_ALERT, TOPIC_HIDE_OBJECTS_TABLE, TOPIC_LIST_OBJECTS, TOPIC_LOADING, TOPIC_REFRESH_BUCKET_LIST, TOPIC_REFRESH_CONNECTION_LIST } from '../constants/Pubsub';
-import { ConnectionItem } from '../dto/BackendRes';
+import { DeleteBucket, ListBuckets } from "../../wailsjs/go/service/Bucket";
+import { DeleteConnection, GetSavedConnectionList } from "../../wailsjs/go/service/Connection";
+import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_CONFIRM, TOPIC_HIDE_OBJECTS_TABLE, TOPIC_LIST_OBJECTS, TOPIC_LOADING, TOPIC_REFRESH_BUCKET_LIST, TOPIC_REFRESH_CONNECTION_LIST } from '../constants/Pubsub';
+import { BucketDetail, ConnectionItem } from '../dto/BackendRes';
 import ConnectionMore from './ConnectionMore';
 import CreateBucket from './CreateBucket';
 
@@ -19,7 +20,7 @@ const ConnectionList = () => {
     const [currentSelectedConn, setCurrentSelectedConn] = React.useState("");
     const [currentSelectedBucket, setCurrentSelectedBucket] = React.useState("");
     const [expandMap, setExpandMap] = React.useState(new Map<string, boolean>());
-    const [connectionBucketsMap, setConnectionBucketsMap] = React.useState(new Map<string, string[]>());
+    const [connectionBucketsMap, setConnectionBucketsMap] = React.useState(new Map<string, BucketDetail[]>());
 
     const handleClickItem = (event: any) => {
         let itemId = event.currentTarget.getAttribute("data-item-id")
@@ -78,6 +79,37 @@ const ConnectionList = () => {
         });
     }
 
+    const handleClickDeleteBucketBtn = (event: any) => {
+        event.stopPropagation();
+        let connectionId = event.currentTarget.getAttribute("data-connectionn-id")
+        let bucket = event.currentTarget.getAttribute("data-bucket")
+        let custom = event.currentTarget.getAttribute("data-custom")
+        PubSub.publish(TOPIC_CONFIRM, {
+            title: "Confirm",
+            content: "Confirm To Delete [" + bucket + "] Bucket ?",
+            confirmCallback: () => {
+                DeleteBucket({
+                    connectionId: connectionId,
+                    bucket: bucket,
+                    custom: JSON.parse(custom)
+                }).then(res => {
+                    if (res.err_msg == "") {
+                        PubSub.publish(TOPIC_ALERT, {
+                            alertType: ALERT_TYPE_SUCCESS,
+                            message: "Delete Bucket [" + bucket + "] Success"
+                        });
+                        listBuckets(connectionId);
+                    } else {
+                        PubSub.publish(TOPIC_ALERT, {
+                            alertType: ALERT_TYPE_ERROR,
+                            message: res.err_msg
+                        });
+                    }
+                });
+            }
+        });
+    }
+
     const subscribeRefreshConnectionsEvent = () => {
         PubSub.subscribe(TOPIC_REFRESH_CONNECTION_LIST, function () {
             queryConnectionList();
@@ -120,7 +152,7 @@ const ConnectionList = () => {
                                     component="div"
                                 >
                                     {
-                                        connectionBucketsMap.get(item.id)?.map((bucket: string) => (
+                                        connectionBucketsMap.get(item.id)?.map((bucket: BucketDetail) => (
                                             <ListItem
                                                 key={item.id}
                                                 style={{ display: 'block' }}
@@ -133,10 +165,19 @@ const ConnectionList = () => {
                                                         pl: 2,
                                                         maxHeight: 40,
                                                     }}
-                                                    selected={bucket === currentSelectedBucket}
-                                                    onClick={() => handleBucketClick(item.id, bucket)}
+                                                    selected={bucket.bucket === currentSelectedBucket}
+                                                    onClick={() => handleBucketClick(item.id, bucket.bucket)}
                                                 >
-                                                    <ListItemText primary={bucket} />
+                                                    <ListItemText primary={bucket.bucket} />
+                                                    <IconButton
+                                                        size="small"
+                                                        data-connectionn-id={item.id}
+                                                        data-bucket={bucket.bucket}
+                                                        data-custom={bucket.custom}
+                                                        onClick={handleClickDeleteBucketBtn}
+                                                    >
+                                                        <DeleteIcon fontSize="inherit" />
+                                                    </IconButton>
                                                 </ListItemButton>
                                             </ListItem>
                                         ))

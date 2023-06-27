@@ -10,6 +10,8 @@ export function BuildSucess(arg1:any):Promise<any>;
 
 export function CreateBucket(arg1:any):Promise<any>;
 
+export function DeleteBucket(arg1:any):Promise<any>;
+
 export function GetTimeoutContext():Promise<context.Context>;
 
 export function Init():Promise<void>;

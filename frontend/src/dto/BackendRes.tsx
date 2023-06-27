@@ -21,3 +21,8 @@ export interface ConnectionDetail {
     region: string
     pathStyle: number
 }
+
+export interface BucketDetail {
+    bucket: string;
+    custom: boolean;
+}

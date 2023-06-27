@@ -36,3 +36,8 @@ type ConnectionDetail struct {
 	Region    string `json:"region"`
 	PathStyle int8   `json:"pathStyle"`
 }
+
+type BucketDetail struct {
+	Bucket string `json:"bucket"`
+	Custom bool   `json:"custom"`
+}

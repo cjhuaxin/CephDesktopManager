@@ -18,6 +18,10 @@ export function CreateBucket(arg1) {
   return window['go']['service']['Bucket']['CreateBucket'](arg1);
 }
 
+export function DeleteBucket(arg1) {
+  return window['go']['service']['Bucket']['DeleteBucket'](arg1);
+}
+
 export function GetTimeoutContext() {
   return window['go']['service']['Bucket']['GetTimeoutContext']();
 }

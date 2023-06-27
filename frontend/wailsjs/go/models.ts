@@ -44,6 +44,22 @@ export namespace models {
 	        this.bucket = source["bucket"];
 	    }
 	}
+	export class DeleteBucketReq {
+	    connectionId: string;
+	    bucket: string;
+	    custom: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new DeleteBucketReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.connectionId = source["connectionId"];
+	        this.bucket = source["bucket"];
+	        this.custom = source["custom"];
+	    }
+	}
 	export class DeleteConnectionReq {
 	    connectionId: string;
 	
