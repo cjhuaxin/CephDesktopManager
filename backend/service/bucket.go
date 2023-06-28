@@ -109,7 +109,7 @@ func (s *Bucket) CreateBucket(req *models.CreateBucketReq) *models.BaseResponse 
 func (s *Bucket) DeleteBucket(req *models.DeleteBucketReq) *models.BaseResponse {
 	if req.Custom {
 		// only delete the custom bucket
-		_, err := s.DbClient.Exec(fmt.Sprintf("DELETE FROM custom_bucket WHERE connection_id = '%s'", req.ConnectionId))
+		_, err := s.DbClient.Exec(fmt.Sprintf("DELETE FROM custom_bucket WHERE connection_id = '%s' AND name = '%s' ", req.ConnectionId, req.Bucket))
 		if err != nil {
 			s.Log.Errorf("delete custom bucket failed: %v", err)
 			return s.BuildFailed(errcode.DatabaseErr, err.Error())

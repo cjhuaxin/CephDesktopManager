@@ -5,7 +5,7 @@ import { Button, Dialog, DialogActions, DialogContent, DialogContentText, Dialog
 import React from "react";
 import { AddCustomBucket } from '../../wailsjs/go/service/Bucket';
 import { DeleteConnection } from '../../wailsjs/go/service/Connection';
-import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_CONFIRM, TOPIC_CONNECTION_DETAIL, TOPIC_REFRESH_CONNECTION_LIST } from '../constants/Pubsub';
+import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_CONFIRM, TOPIC_CONNECTION_DETAIL, TOPIC_REFRESH_BUCKET_LIST, TOPIC_REFRESH_CONNECTION_LIST } from '../constants/Pubsub';
 import AddCustomBucketIcon from './icons/AddCustomBucketIcon';
 
 export default function ConnectionMore({ connectionId, connectionName, hidden }: any) {
@@ -28,7 +28,7 @@ export default function ConnectionMore({ connectionId, connectionName, hidden }:
         initCustomBucketInput();
     };
 
-    const handleSave = (event: any) => {
+    const handleSaveCustomBucket = (event: any) => {
         event.stopPropagation();
         if (!customBucketName) {
             setCustomBucketNameErrText("bucket name is required");
@@ -45,6 +45,9 @@ export default function ConnectionMore({ connectionId, connectionName, hidden }:
             bucket: customBucketName.trim(),
         }).then((res) => {
             if (res.err_msg == "") {
+                PubSub.publish(TOPIC_REFRESH_BUCKET_LIST, {
+                    connectionId
+                });
                 PubSub.publish(TOPIC_ALERT, {
                     alertType: ALERT_TYPE_SUCCESS,
                     message: "Add Custom Bucket success"
@@ -182,7 +185,7 @@ export default function ConnectionMore({ connectionId, connectionName, hidden }:
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleCloseCustomBucketDialog}>Cancel</Button>
-                    <Button onClick={handleSave}>Save</Button>
+                    <Button onClick={handleSaveCustomBucket}>Save</Button>
                 </DialogActions>
             </Dialog>
         </div>

@@ -1,6 +1,6 @@
 import { ExpandLess, ExpandMore } from '@mui/icons-material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { Box, Collapse, Divider, IconButton, ListItemButton, ListItemText } from '@mui/material';
+import { Box, Collapse, Divider, IconButton, ListItemButton, ListItemText, Typography } from '@mui/material';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import PubSub from "pubsub-js";
@@ -12,6 +12,14 @@ import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_CONFIRM, TOPIC
 import { BucketDetail, ConnectionItem } from '../dto/BackendRes';
 import ConnectionMore from './ConnectionMore';
 import CreateBucket from './CreateBucket';
+
+const originBucketStyle = {
+    color: "green"
+}
+
+const customBucketStyle = {
+    color: "blue"
+}
 
 const ConnectionList = () => {
 
@@ -173,7 +181,10 @@ const ConnectionList = () => {
                                                     selected={(item.id + "_" + bucket.bucket) === currentSelectedBucket}
                                                     onClick={() => handleBucketClick(item.id, bucket.bucket)}
                                                 >
-                                                    <ListItemText primary={bucket.bucket} />
+                                                    <ListItemText
+                                                        primaryTypographyProps={{ style: bucket.custom ? customBucketStyle : originBucketStyle }}
+                                                        primary={bucket.bucket}
+                                                    />
                                                     <IconButton
                                                         size="small"
                                                         data-connectionn-id={item.id}
