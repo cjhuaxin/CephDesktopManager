@@ -11,7 +11,7 @@ import * as React from 'react';
 import { CreateBucket as CreateBucketApi } from "../../wailsjs/go/service/Bucket";
 import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_REFRESH_BUCKET_LIST } from '../constants/Pubsub';
 
-export default function CreateBucket({ connectionId, hidden }: any) {
+export default function CreateBucket({ connectionId }: any) {
     const [open, setOpen] = React.useState(false);
     const [bucketName, setBucketName] = React.useState("");
     const [bucketNameErrText, setBucketNameErrText] = React.useState("");
@@ -66,7 +66,7 @@ export default function CreateBucket({ connectionId, hidden }: any) {
     }
 
     return (
-        <div hidden={hidden}>
+        <div>
             <Tooltip title="Create Bucket">
                 <IconButton
                     size="small"

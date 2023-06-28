@@ -54,7 +54,9 @@ const ConnectionList = () => {
         req.connectionId = connectionId;
         // show loading
         PubSub.publish(TOPIC_LOADING, true);
-        const res = await ListBuckets(req);
+        const res = await ListBuckets({
+            connectionId: connectionId,
+        });
         // hide loading
         PubSub.publish(TOPIC_LOADING, false);
         if (res.err_msg != "") {
@@ -72,7 +74,7 @@ const ConnectionList = () => {
 
     const handleBucketClick = (connectionId: string, bucket: string) => {
         setCurrentSelectedConn(connectionId);
-        setCurrentSelectedBucket(bucket);
+        setCurrentSelectedBucket(connectionId + "_" + bucket);
         PubSub.publish(TOPIC_LIST_OBJECTS, {
             connectionId: connectionId,
             bucket: bucket
@@ -120,8 +122,8 @@ const ConnectionList = () => {
     }
 
     const subscribeRefreshBucketsEvent = () => {
-        PubSub.subscribe(TOPIC_REFRESH_BUCKET_LIST, function (_, connectionId: string) {
-            listBuckets(connectionId);
+        PubSub.subscribe(TOPIC_REFRESH_BUCKET_LIST, function (_, data: any) {
+            listBuckets(data.connectionId);
         })
     }
 
@@ -168,7 +170,7 @@ const ConnectionList = () => {
                                                         pl: 2,
                                                         maxHeight: 40,
                                                     }}
-                                                    selected={bucket.bucket === currentSelectedBucket}
+                                                    selected={(item.id + "_" + bucket.bucket) === currentSelectedBucket}
                                                     onClick={() => handleBucketClick(item.id, bucket.bucket)}
                                                 >
                                                     <ListItemText primary={bucket.bucket} />
