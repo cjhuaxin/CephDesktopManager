@@ -14,11 +14,11 @@ import ConnectionMore from './ConnectionMore';
 import CreateBucket from './CreateBucket';
 
 const originBucketStyle = {
-    color: "green"
+    color: "#20B2AA"
 }
 
 const customBucketStyle = {
-    color: "blue"
+    color: "#DEB887"
 }
 
 const ConnectionList = () => {
