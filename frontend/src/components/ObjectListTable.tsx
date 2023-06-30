@@ -1,7 +1,8 @@
 import DeleteIcon from '@mui/icons-material/Delete';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import PreviewIcon from '@mui/icons-material/Preview';
-import { AlertColor, Box, Breadcrumbs, Grid, Link, Pagination, PaginationItem, Typography } from '@mui/material';
+
+import { AlertColor, Box, Breadcrumbs, Grid, IconButton, InputBase, Link, Pagination, PaginationItem, Paper, Typography } from '@mui/material';
 import { LinkProps } from '@mui/material/Link';
 import { styled } from '@mui/material/styles';
 import { DataGrid, GridActionsCellItem, GridColDef, GridValueFormatterParams } from '@mui/x-data-grid';
@@ -14,6 +15,7 @@ import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_CHANGE_OBJECTS
 import { ObjectItem } from '../dto/BackendRes';
 import { AlertEventBody, ListObjectsEventBody, ListObjectsItem } from '../dto/Frontend';
 import UploadObject from './UploadObject';
+import SearchInput from './SearchInput';
 
 const alertMsg = (alertType: AlertColor, msg: string) => {
     let alertBody: AlertEventBody = {
@@ -26,11 +28,13 @@ const alertMsg = (alertType: AlertColor, msg: string) => {
 export default function ObjectListTable() {
     interface LinkRouterProps extends LinkProps {
         path: string;
+        index: number;
     }
 
     interface ItemLinkProps {
         folder: string;
         children: string;
+        searchKeyword: string;
         updateBreadcrumbs: boolean;
     }
 
@@ -50,7 +54,7 @@ export default function ObjectListTable() {
         color: 'inherit',
     });
 
-    const PAGE_SIZE = 50;
+    const PAGE_SIZE = 30;
     const DELIMITER = "/";
 
     const [display, setDisplay] = React.useState("none");
@@ -58,10 +62,10 @@ export default function ObjectListTable() {
     const [rowData, setRowData] = React.useState(Array<ListObjectsItem>);
     const [breadcrumbs, setBreadcrumbs] = React.useState(Array<LinkRouterProps>);
 
-
     const connectionId = React.useRef("");
     const bucket = React.useRef("");
     const prefix = React.useRef("");
+    const searchKeyword = React.useRef("");
     const pageInfo = React.useRef<PageInfo>({
         continueToken: "",
         currentPageNum: 1,
@@ -102,7 +106,7 @@ export default function ObjectListTable() {
                 //return the link
                 if (params.row.commonPrefix) {
                     return (
-                        <FolderLink folder={params.value} updateBreadcrumbs={true}>
+                        <FolderLink folder={params.value.substring(0, params.value.length - 1)} updateBreadcrumbs={true} searchKeyword={""}>
                             {params.value}
                         </FolderLink>
                     );
@@ -201,6 +205,7 @@ export default function ObjectListTable() {
                                 folder: prefix.current,
                                 children: prefix.current,
                                 updateBreadcrumbs: false,
+                                searchKeyword: searchKeyword.current,
                             })
                         } else {
                             alertMsg(ALERT_TYPE_ERROR, res.err_msg);
@@ -224,32 +229,33 @@ export default function ObjectListTable() {
             setDisplay("")
             connectionId.current = data.connectionId;
             bucket.current = data.bucket;
-            if (data.prefix && data.prefix != "") {
+            if (data.prefix || data.searchKeyword) {
                 //handle folder click event
                 handleFolderClick({
                     folder: data.prefix,
                     children: data.prefix,
                     updateBreadcrumbs: data.updateBreadcrumbs,
+                    searchKeyword: data.searchKeyword,
                 })
             } else {
                 listRootObjects();
             }
-
         })
     }
 
     // common list objects function
     const listObjects = (continueToken: string, prefix: string, successFn: (res: models.BaseResponse) => void, failureFn: (res: models.BaseResponse) => void) => {
         setLoading(true);
-        let req = new models.ListObjectsReq({
+        //append search keyword to list object
+        prefix += searchKeyword.current;
+        ListObjects({
             connectionId: connectionId.current,
             bucket: bucket.current,
             continueToken: continueToken,
             prefix: prefix,
             delimiter: DELIMITER,
             pageSize: PAGE_SIZE,
-        })
-        ListObjects(req).then((res: models.BaseResponse) => {
+        }).then((res: models.BaseResponse) => {
             setLoading(false);
             if (res.err_msg == "") {
                 successFn(res);
@@ -261,15 +267,17 @@ export default function ObjectListTable() {
 
     // trigger when click the bucket
     const listRootObjects = () => {
+        searchKeyword.current = "";
+        //clear the prefix
+        prefix.current = "";
+        let current = pageInfo.current;
+        current.disableFirst = true;
+        current.disablePrevious = true;
+        setBreadcrumbs([]);
+
         listObjects("", "", function (res) {
             if (res.data) {
-                //clear the prefix
-                prefix.current = "";
-                let current = pageInfo.current;
-                current.disableFirst = true;
-                current.disablePrevious = true;
                 setRowData(res.data.objects);
-                setBreadcrumbs([]);
                 // set page info
                 if (res.data.nextContinuationToken != "") {
                     current.continueToken = res.data.nextContinuationToken;
@@ -288,42 +296,56 @@ export default function ObjectListTable() {
             //the path under bucket
             let props: ItemLinkProps = {
                 folder: path,
-                children: '',
+                children: path,
                 updateBreadcrumbs: true,
+                searchKeyword: "",
             }
             handleFolderClick(props);
         } else {
             //click bucket to root path
-            listRootObjects();
+            PubSub.publish(TOPIC_LIST_OBJECTS, {
+                connectionId: connectionId.current,
+                bucket: bucket.current
+            });
         }
     };
 
     const handleFolderClick = (props: ItemLinkProps) => {
+        searchKeyword.current = props.searchKeyword
+        console.log("props", props);
         prefix.current = "";
+        console.log("breadcrumbs", breadcrumbs);
         let stopIndex = breadcrumbs.findIndex(b => b.path === props.folder);
         if (stopIndex == -1) {
             stopIndex = breadcrumbs.length;
         }
+        console.log("stopIndex", stopIndex);
         //assemble the query prefix
         breadcrumbs.forEach((breadcrumb, i) => {
             if (i <= stopIndex) {
                 prefix.current += breadcrumb.path;
+                if (!prefix.current.endsWith(DELIMITER)) {
+                    prefix.current += DELIMITER
+                }
             }
         });
-        if (prefix.current != "") {
-            prefix.current = prefix.current + "/"
-        }
+
         // Click on the breadcrumbs that don't exist, just append it to the prefix
         if (stopIndex == breadcrumbs.length) {
             prefix.current += props.folder;
         }
+        if (prefix.current != "" && !prefix.current.endsWith(DELIMITER)) {
+            prefix.current += DELIMITER
+        }
+        console.log("prefix", prefix);
 
         listObjects("", prefix.current, function (res) {
             if (res.data) {
                 setRowData(res.data.objects);
-                let currentPath = props.folder.slice(0, -1)
+                let currentPath = props.folder
                 let newBreadCrumb: LinkRouterProps = {
                     path: currentPath,
+                    index: breadcrumbs.length + 1,
                 }
                 if (props.updateBreadcrumbs) {
                     // Click on the breadcrumbs that don't exist, just add it to breadcrumbs list
@@ -333,6 +355,8 @@ export default function ObjectListTable() {
                         // Click on the breadcrumbs that exists, cutoff the sub path
                         setBreadcrumbs(prev => prev.slice(0, stopIndex + 1));
                     }
+                    // if need to update breadcrumbs,clear the search keyword
+                    searchKeyword.current = "";
                 }
 
                 // set page info
@@ -354,6 +378,8 @@ export default function ObjectListTable() {
         });
     };
 
+
+    // paginater handlers
     const handleFirstClick = () => {
         listObjects("", prefix.current, function (res) {
             if (res.data) {
@@ -437,11 +463,12 @@ export default function ObjectListTable() {
         <Box sx={{ display: display }}>
             <Grid container spacing={2}>
                 <Grid item xs={8}>
-                    <Breadcrumbs aria-label="breadcrumb" style={{ marginBottom: 10 }}>
+                    <Breadcrumbs aria-label="breadcrumb">
                         <LinkRouter
                             underline="hover"
                             color="inherit"
                             path=""
+                            index={0}
                             sx={{ cursor: "pointer" }}
                             onClick={handleClickBreadcrumb}
                         >
@@ -450,7 +477,10 @@ export default function ObjectListTable() {
                         {breadcrumbs.map((value, index) => {
                             const last = index === breadcrumbs.length - 1;
                             return last ? (
-                                <Typography color="text.primary" key={value.path}>
+                                <Typography
+                                    color="text.primary"
+                                    key={value.path}
+                                >
                                     {value.path}
                                 </Typography>
                             ) : (
@@ -458,6 +488,7 @@ export default function ObjectListTable() {
                                     underline="hover"
                                     color="inherit"
                                     path={value.path}
+                                    index={index}
                                     sx={{ cursor: "pointer" }}
                                     onClick={handleClickBreadcrumb}
                                 >
@@ -469,6 +500,9 @@ export default function ObjectListTable() {
                 </Grid>
                 <Grid item xs={4}>
                     <UploadObject bucket={bucket} connectionId={connectionId} prefix={prefix} />
+                </Grid>
+                <Grid item xs={8}>
+                    <SearchInput connectionId={connectionId.current} bucket={bucket.current} />
                 </Grid>
             </Grid>
             <div style={{ height: '87vh', width: '100%' }}>

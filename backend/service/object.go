@@ -60,11 +60,22 @@ func (s *Object) ListObjects(req *models.ListObjectsReq) *models.BaseResponse {
 	// add common prefix(folders)
 	for _, c := range output.CommonPrefixes {
 		originPrefix := *c.Prefix
-		timePrefix := strings.Replace(originPrefix, req.Prefix, "", 1)
+		trimedPrefix := originPrefix
+		if req.Prefix != "" {
+			// click folder no search keyword
+			prefix := req.Prefix
+			if !strings.HasSuffix(req.Prefix, req.Delimiter) {
+				//contains the search keyword
+				prefixIndex := strings.LastIndex(req.Prefix, req.Delimiter)
+				prefix = req.Prefix[:prefixIndex+1]
+			}
+
+			trimedPrefix = strings.Replace(originPrefix, prefix, "", 1)
+		}
 
 		data = append(data, &models.ObjectItem{
 			ID:           xid.New().String(),
-			Key:          timePrefix,
+			Key:          trimedPrefix,
 			CommonPrefix: true,
 		})
 	}

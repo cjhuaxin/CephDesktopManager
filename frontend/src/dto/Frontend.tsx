@@ -21,6 +21,7 @@ export type ListObjectsEventBody = {
     connectionId: string;
     bucket: string;
     prefix: string;
+    searchKeyword: string;
     updateBreadcrumbs: boolean;
 }
 

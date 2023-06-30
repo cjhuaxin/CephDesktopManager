@@ -45,12 +45,12 @@ func WailsInit(assets embed.FS, wailsJson []byte) *options.App {
 	aboutTitle := "Ceph Desktop Manager"
 	aboutMessage := fmt.Sprintf("Version %s\n\n Copyright © 2022 cjhuaxin", version)
 	return &options.App{
-		Title:            resource.AppTitle,
-		Width:            1024,
-		Height:           768,
-		Assets:           assets,
-		Menu:             buildAppMenu(),
-		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
+		Title:  resource.AppTitle,
+		Width:  1024,
+		Height: 768,
+		Assets: assets,
+		Menu:   buildAppMenu(),
+		// BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup: func(ctx context.Context) {
 			err := app.onStart(ctx, extraBindList...)
 			if err != nil {
