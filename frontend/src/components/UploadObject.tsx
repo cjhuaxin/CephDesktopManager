@@ -5,7 +5,7 @@ import { PrepareForUploading } from "../../wailsjs/go/service/Object";
 import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_LIST_OBJECTS, TOPIC_LOADING } from "../constants/Pubsub";
 import { ConnectionDetail } from "../dto/BackendRes";
 
-export default function UploadObject({ bucket, connectionId, prefix }: any) {
+export default function UploadObject({ bucket, connectionId, prefix, searchKeyword }: any) {
     const uploadInputRef = React.useRef<HTMLInputElement>(null);
 
     const handleUploadClick = () => {
@@ -21,7 +21,7 @@ export default function UploadObject({ bucket, connectionId, prefix }: any) {
         event.currentTarget.value = null;
         // get connection details from backend
         PrepareForUploading({
-            connectionId: connectionId.current,
+            connectionId: connectionId,
         }).then((res) => {
             if (res.err_msg == "") {
                 let data: ConnectionDetail = res.data;
@@ -38,16 +38,17 @@ export default function UploadObject({ bucket, connectionId, prefix }: any) {
                     // }),
                 });
                 let command = new PutObjectCommand({
-                    Bucket: bucket.current,
-                    Key: prefix.current + uploadOject.name,
+                    Bucket: bucket,
+                    Key: prefix + uploadOject.name,
                     Body: uploadOject,
                 });
                 client.send(command).then(s3Res => {
                     PubSub.publish(TOPIC_LIST_OBJECTS, {
-                        connectionId: connectionId.current,
-                        bucket: bucket.current,
-                        prefix: prefix.current,
-                        append: false,
+                        connectionId: connectionId,
+                        bucket: bucket,
+                        prefix: prefix,
+                        updateBreadcrumbs: false,
+                        searchKeyword: searchKeyword,
                     });
                     PubSub.publish(TOPIC_ALERT, {
                         alertType: ALERT_TYPE_SUCCESS,

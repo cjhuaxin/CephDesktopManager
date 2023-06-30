@@ -2,7 +2,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import PreviewIcon from '@mui/icons-material/Preview';
 
-import { AlertColor, Box, Breadcrumbs, Grid, IconButton, InputBase, Link, Pagination, PaginationItem, Paper, Typography } from '@mui/material';
+import { AlertColor, Box, Breadcrumbs, Grid, Link, Pagination, PaginationItem, Typography } from '@mui/material';
 import { LinkProps } from '@mui/material/Link';
 import { styled } from '@mui/material/styles';
 import { DataGrid, GridActionsCellItem, GridColDef, GridValueFormatterParams } from '@mui/x-data-grid';
@@ -11,11 +11,11 @@ import prettyBytes from 'pretty-bytes';
 import * as React from 'react';
 import { models } from '../../wailsjs/go/models';
 import { DeleteObjects, DownloadObjects, ListObjects } from "../../wailsjs/go/service/Object";
-import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_CHANGE_OBJECTS_TABLE_STATE, TOPIC_CONFIRM, TOPIC_LIST_OBJECTS } from '../constants/Pubsub';
+import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_CHANGE_OBJECTS_TABLE_STATE, TOPIC_CONFIRM, TOPIC_LIST_OBJECTS, TOPIC_UPDATE_SEARCH_KEYWORD } from '../constants/Pubsub';
 import { ObjectItem } from '../dto/BackendRes';
 import { AlertEventBody, ListObjectsEventBody, ListObjectsItem } from '../dto/Frontend';
-import UploadObject from './UploadObject';
 import SearchInput from './SearchInput';
+import UploadObject from './UploadObject';
 
 const alertMsg = (alertType: AlertColor, msg: string) => {
     let alertBody: AlertEventBody = {
@@ -54,7 +54,7 @@ export default function ObjectListTable() {
         color: 'inherit',
     });
 
-    const PAGE_SIZE = 30;
+    const PAGE_SIZE = 50;
     const DELIMITER = "/";
 
     const [display, setDisplay] = React.useState("none");
@@ -270,6 +270,8 @@ export default function ObjectListTable() {
         searchKeyword.current = "";
         //clear the prefix
         prefix.current = "";
+        //update search keyword 
+        PubSub.publish(TOPIC_UPDATE_SEARCH_KEYWORD, "");
         let current = pageInfo.current;
         current.disableFirst = true;
         current.disablePrevious = true;
@@ -311,7 +313,12 @@ export default function ObjectListTable() {
     };
 
     const handleFolderClick = (props: ItemLinkProps) => {
-        searchKeyword.current = props.searchKeyword
+        if (props.searchKeyword != searchKeyword.current) {
+            searchKeyword.current = props.searchKeyword
+            // update search keyword
+            PubSub.publish(TOPIC_UPDATE_SEARCH_KEYWORD, props.searchKeyword);
+        }
+
         console.log("props", props);
         prefix.current = "";
         console.log("breadcrumbs", breadcrumbs);
@@ -499,10 +506,10 @@ export default function ObjectListTable() {
                     </Breadcrumbs>
                 </Grid>
                 <Grid item xs={4}>
-                    <UploadObject bucket={bucket} connectionId={connectionId} prefix={prefix} />
+                    <UploadObject bucket={bucket.current} connectionId={connectionId.current} prefix={prefix.current} searchKeyword={searchKeyword.current} />
                 </Grid>
                 <Grid item xs={8}>
-                    <SearchInput connectionId={connectionId.current} bucket={bucket.current} />
+                    <SearchInput connectionId={connectionId.current} bucket={bucket.current} prefix={prefix.current} />
                 </Grid>
             </Grid>
             <div style={{ height: '87vh', width: '100%' }}>

@@ -8,7 +8,7 @@ import * as React from 'react';
 import { models } from '../../wailsjs/go/models';
 import { DeleteBucket, ListBuckets } from "../../wailsjs/go/service/Bucket";
 import { DeleteConnection, GetSavedConnectionList } from "../../wailsjs/go/service/Connection";
-import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_CONFIRM, TOPIC_CHANGE_OBJECTS_TABLE_STATE, TOPIC_LIST_OBJECTS, TOPIC_LOADING, TOPIC_REFRESH_BUCKET_LIST, TOPIC_REFRESH_CONNECTION_LIST } from '../constants/Pubsub';
+import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_CONFIRM, TOPIC_CHANGE_OBJECTS_TABLE_STATE, TOPIC_LIST_OBJECTS, TOPIC_LOADING, TOPIC_REFRESH_BUCKET_LIST, TOPIC_REFRESH_CONNECTION_LIST, TOPIC_UPDATE_SEARCH_KEYWORD } from '../constants/Pubsub';
 import { BucketDetail, ConnectionItem } from '../dto/BackendRes';
 import ConnectionMore from './ConnectionMore';
 import CreateBucket from './CreateBucket';
@@ -87,6 +87,8 @@ const ConnectionList = () => {
             connectionId: connectionId,
             bucket: bucket
         });
+
+        PubSub.publish(TOPIC_UPDATE_SEARCH_KEYWORD, "");
     }
 
     const handleClickDeleteBucketBtn = (event: any) => {

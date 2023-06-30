@@ -1,24 +1,21 @@
-import { Paper, InputBase, IconButton } from "@mui/material";
 import SearchIcon from '@mui/icons-material/Search';
+import { IconButton, InputBase, Paper } from "@mui/material";
 import React from "react";
-import { TOPIC_LIST_OBJECTS } from "../constants/Pubsub";
+import { TOPIC_LIST_OBJECTS, TOPIC_UPDATE_SEARCH_KEYWORD } from "../constants/Pubsub";
 
-export default function SearchInput({ connectionId, bucket }: any) {
+export default function SearchInput({ connectionId, bucket, prefix }: any) {
 
-    const searchKeyword = React.useRef("");
+    const searchKeywordRef = React.useRef<HTMLInputElement>();
 
     const handleSearchKeywordClick = () => {
         //click bucket to root path
         PubSub.publish(TOPIC_LIST_OBJECTS, {
             connectionId: connectionId,
             bucket: bucket,
+            prefix: prefix,
             updateBreadcrumbs: false,
-            searchKeyword: searchKeyword.current,
+            searchKeyword: searchKeywordRef.current!.value,
         });
-    }
-
-    const handleOnChange = (event: any) => {
-        searchKeyword.current = event.target.value
     }
 
     const handleSearchKeywordKeyPress = (event: any) => {
@@ -26,6 +23,16 @@ export default function SearchInput({ connectionId, bucket }: any) {
             handleSearchKeywordClick();
         }
     }
+
+    const subscribeUpdateSearchKeyword = () => {
+        PubSub.subscribe(TOPIC_UPDATE_SEARCH_KEYWORD, function (_, keyword: string) {
+            searchKeywordRef.current!.value = keyword;
+        })
+    }
+
+    React.useEffect(() => {
+        subscribeUpdateSearchKeyword();
+    }, []);
 
     return (
         <Paper
@@ -38,7 +45,7 @@ export default function SearchInput({ connectionId, bucket }: any) {
             }}
         >
             <InputBase
-                onChange={handleOnChange}
+                inputRef={searchKeywordRef}
                 sx={{ ml: 1, flex: 1 }}
                 onKeyUp={handleSearchKeywordKeyPress}
                 placeholder="Search Objects"
