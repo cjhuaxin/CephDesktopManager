@@ -76,7 +76,7 @@ If you encounter the can't open problem, please refer to [Open Mac App from an u
 - [] Object policy configuration[⭐️]
 - [] Object lifecycle configuration[⭐️]
 
-### Connection
+### 🖇️ Connection
 - [x] Create Connection[⭐️⭐️⭐️⭐️⭐️]
 - [x] Edit connection[⭐️⭐️⭐️⭐️]
 - [x] Delete connection[⭐️⭐️⭐️⭐️]
@@ -84,7 +84,7 @@ If you encounter the can't open problem, please refer to [Open Mac App from an u
 - [] Auto re-connect[⭐️⭐️]
 - [] SSH support[⭐️⭐️]
 
-### App
+### 👨🏻‍💻 App
 - [] Upgrade feature[⭐️⭐️⭐️⭐️]
 - [] Configure the download directory[⭐️⭐️]
 - [] Connection Configuration Sync on Cloud[⭐️]
