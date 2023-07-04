@@ -34,7 +34,7 @@ type App struct {
 	*base.Service
 }
 
-func WailsInit(assets embed.FS, wailsJson []byte) *options.App {
+func WailsInit(assets embed.FS, wailsJson, aboutIcon []byte) *options.App {
 	baseService := &base.Service{}
 	// Create an instance of the app structure
 	app := &App{
@@ -66,14 +66,6 @@ func WailsInit(assets embed.FS, wailsJson []byte) *options.App {
 			DisableWindowIcon:                 false,
 			DisableFramelessWindowDecorations: false,
 			Theme:                             windows.SystemDefault,
-			CustomTheme: &windows.ThemeSettings{
-				DarkModeTitleBar:   windows.RGB(20, 20, 20),
-				DarkModeTitleText:  windows.RGB(200, 200, 200),
-				DarkModeBorder:     windows.RGB(20, 0, 20),
-				LightModeTitleBar:  windows.RGB(200, 200, 200),
-				LightModeTitleText: windows.RGB(20, 20, 20),
-				LightModeBorder:    windows.RGB(200, 200, 200),
-			},
 		},
 		Mac: &mac.Options{
 			TitleBar: &mac.TitleBar{
@@ -90,16 +82,16 @@ func WailsInit(assets embed.FS, wailsJson []byte) *options.App {
 			About: &mac.AboutInfo{
 				Title:   aboutTitle,
 				Message: aboutMessage,
-				// Icon:    []byte{},
+				Icon:    aboutIcon,
 			},
 		},
 		Linux: &linux.Options{
-			// Icon:                []byte{},
+			Icon:                aboutIcon,
 			WindowIsTranslucent: false,
 			WebviewGpuPolicy:    linux.WebviewGpuPolicyAlways,
 		},
 		Debug: options.Debug{
-			OpenInspectorOnStartup: false,
+			OpenInspectorOnStartup: true,
 		},
 	}
 }
