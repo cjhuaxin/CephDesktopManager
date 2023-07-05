@@ -11,9 +11,9 @@ import (
 	"github.com/cjhuaxin/CephDesktopManager/backend/models"
 	"github.com/cjhuaxin/CephDesktopManager/backend/resource"
 	"github.com/cjhuaxin/CephDesktopManager/backend/util"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/xid"
 	"github.com/thanhpk/randstr"
+	_ "modernc.org/sqlite"
 )
 
 type Connection struct {
@@ -37,7 +37,7 @@ func (s *Connection) Init() error {
 }
 
 func (s *Connection) initDbClient() error {
-	db, err := sql.Open("sqlite3", filepath.Join(s.Paths.DbDir, resource.DatabaseFile))
+	db, err := sql.Open("sqlite", filepath.Join(s.Paths.DbDir, resource.DatabaseFile))
 	if err != nil {
 		s.Log.Errorf("open database error: %v", err)
 		return err
