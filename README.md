@@ -43,6 +43,16 @@ Ceph Desktop Manager is open source，secure application, but due to Apple's str
 
 If you encounter the can't open problem, please refer to [Open Mac App from an unidentified developer](https://support.apple.com/zh-cn/guide/mac-help/mh40616/mac)
 
+
+<div >
+    <img src="https://cdn.jsdelivr.net/gh/cjhuaxin/CephDesktopManager@8bc7f6c41747ce8faa7df5a92949a0a94a4defc5/build/screenshot/1688547585175-unidentified-en.jpg" width="40%">
+    <img src="https://cdn.jsdelivr.net/gh/cjhuaxin/CephDesktopManager@42c9e26e25cc5fafd6a1c52fa06fbc225c51e0e3/build/screenshot/1688549059650-confirmOpen-en.jpg" width="40%">
+</div>
+
+<div >
+    <img src="https://cdn.jsdelivr.net/gh/cjhuaxin/CephDesktopManager@42c9e26e25cc5fafd6a1c52fa06fbc225c51e0e3/build/screenshot/1688548154020-oepnAnyway-en.jpg">
+</div>
+
 ## Feature
 
 ### 🪣 Bucket

@@ -42,6 +42,15 @@ Ceph Desktop Manager是开源的，安全的应用程序，但由于苹果的严
 
 如果遇到无法打开的问题，请参考 [打开来自身份不明开发者的 Mac App](https://support.apple.com/zh-cn/guide/mac-help/mh40616/mac)
 
+<div >
+    <img src="https://cdn.jsdelivr.net/gh/cjhuaxin/CephDesktopManager@42c9e26e25cc5fafd6a1c52fa06fbc225c51e0e3/build/screenshot/1688547585175-unidentified.jpg" width="40%">
+</div>
+
+<div >
+    <img src="https://cdn.jsdelivr.net/gh/cjhuaxin/CephDesktopManager@42c9e26e25cc5fafd6a1c52fa06fbc225c51e0e3/build/screenshot/1688548154020-oepnAnyway.jpg">
+</div>
+
+
 ## 功能
 
 ### 🪣 桶
