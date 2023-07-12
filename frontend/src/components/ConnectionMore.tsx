@@ -184,8 +184,8 @@ export default function ConnectionMore({ connectionId, connectionName, hidden }:
                     />
                 </DialogContent>
                 <DialogActions>
+                    <Button variant="contained" onClick={handleSaveCustomBucket}>Save</Button>
                     <Button onClick={handleCloseCustomBucketDialog}>Cancel</Button>
-                    <Button onClick={handleSaveCustomBucket}>Save</Button>
                 </DialogActions>
             </Dialog>
         </div>

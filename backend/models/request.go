@@ -59,3 +59,7 @@ type DeleteConnectionReq struct {
 type GetConnectionDetailReq struct {
 	ConnectionId string `json:"connectionId"`
 }
+
+type DownloadUpgradeFileReq struct {
+	DownloadUrl string `json:"downloadUrl"`
+}

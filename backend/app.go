@@ -4,11 +4,22 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"io"
+	"net"
+	"net/http"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
 	"reflect"
 	osRuntime "runtime"
+	"strings"
+	"time"
+
+	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+
+	"github.com/cjhuaxin/CephDesktopManager/backend/errcode"
+	"github.com/cjhuaxin/CephDesktopManager/backend/models"
 
 	"github.com/cjhuaxin/CephDesktopManager/backend/resource"
 	"github.com/cjhuaxin/CephDesktopManager/backend/service"
@@ -16,10 +27,12 @@ import (
 
 	"github.com/cjhuaxin/CephDesktopManager/backend/base"
 	"github.com/wailsapp/wails/v2/pkg/menu"
+	"github.com/wailsapp/wails/v2/pkg/menu/keys"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/linux"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -32,24 +45,29 @@ type Bind interface {
 // App struct
 type App struct {
 	*base.Service
+	Ctx context.Context
 }
 
-func WailsInit(assets embed.FS, wailsJson, aboutIcon []byte) *options.App {
+type progress struct {
+	downloadedBytes int64
+	elapsedTime     float64
+}
+
+func WailsInit(assets embed.FS, appicon, wailsJson []byte) *options.App {
 	baseService := &base.Service{}
 	// Create an instance of the app structure
 	app := &App{
 		Service: baseService,
 	}
 	extraBindList := extraBinds(baseService)
-	version := gjson.GetBytes(wailsJson, "info.productVersion")
-	aboutTitle := "Ceph Desktop Manager"
-	aboutMessage := fmt.Sprintf("Version %s\n\n Copyright © 2022 cjhuaxin", version)
 	return &options.App{
 		Title:  resource.AppTitle,
 		Width:  1024,
 		Height: 768,
-		Assets: assets,
-		Menu:   buildAppMenu(),
+		AssetServer: &assetserver.Options{
+			Assets: assets,
+		},
+		Menu: buildAppMenu(wailsJson, appicon, app),
 		// BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup: func(ctx context.Context) {
 			err := app.onStart(ctx, extraBindList...)
@@ -79,19 +97,14 @@ func WailsInit(assets embed.FS, wailsJson, aboutIcon []byte) *options.App {
 			Appearance:           mac.NSAppearanceNameDarkAqua,
 			WebviewIsTransparent: true,
 			WindowIsTranslucent:  false,
-			About: &mac.AboutInfo{
-				Title:   aboutTitle,
-				Message: aboutMessage,
-				Icon:    aboutIcon,
-			},
 		},
 		Linux: &linux.Options{
-			Icon:                aboutIcon,
+			// Icon:                aboutIcon,
 			WindowIsTranslucent: false,
 			WebviewGpuPolicy:    linux.WebviewGpuPolicyAlways,
 		},
 		Debug: options.Debug{
-			OpenInspectorOnStartup: true,
+			OpenInspectorOnStartup: false,
 		},
 	}
 }
@@ -116,6 +129,7 @@ func allBinds(app *App, extraBinds []Bind) []interface{} {
 }
 
 func (a *App) onStart(ctx context.Context, binds ...Bind) error {
+	a.Ctx = ctx
 	//init directory for app
 	err := a.initDirectoryStructure()
 	if err != nil {
@@ -146,7 +160,7 @@ func (a *App) initDirectoryStructure() error {
 		DbDir:       filepath.Join(homeDir, resource.DirPathDb),
 		LogDir:      filepath.Join(homeDir, resource.DirPathlog),
 		TmpDir:      filepath.Join(homeDir, resource.DirPathTmp),
-		DownloadDir: filepath.Join(homeDir, resource.DirPathDownload),
+		DownloadDir: filepath.Join(u.HomeDir, resource.DirPathDownload, resource.AppName),
 	}
 
 	//create folder
@@ -158,18 +172,60 @@ func (a *App) initDirectoryStructure() error {
 	return nil
 }
 
-func buildAppMenu() *menu.Menu {
-	appMenu := menu.NewMenu()
-	//main menu
-	appMenu.Append(menu.AppMenu())
+func buildAppMenu(wailsJson, appicon []byte, app *App) *menu.Menu {
+	rootMenu := menu.NewMenu()
+	appName := gjson.GetBytes(wailsJson, "name")
+	version := gjson.GetBytes(wailsJson, "info.productVersion")
+	aboutMessage := fmt.Sprintf("Version %s\n\n Copyright © 2022 cjhuaxin", version.String())
+	//app menu
+	appMenu := rootMenu.AddSubmenu(appName.Raw)
+	// about menu
+	appMenu.AddText(fmt.Sprintf("About %s", appName.String()), nil, func(_ *menu.CallbackData) {
+		runtime.MessageDialog(app.Ctx, runtime.MessageDialogOptions{
+			Type:          "info",
+			Title:         appName.String(),
+			Message:       aboutMessage,
+			Buttons:       nil,
+			DefaultButton: "",
+			CancelButton:  "",
+			Icon:          appicon,
+		})
+	})
+	// current version
+	appMenu.Append(&menu.MenuItem{
+		Label:    fmt.Sprintf("Current version: v%s", version.String()),
+		Type:     menu.TextType,
+		Disabled: true,
+	})
+	// update menu
+	appMenu.AddText("Check for updates", keys.CmdOrCtrl("u"), func(_ *menu.CallbackData) {
+		runtime.EventsEmit(app.Ctx, resource.CHECK_UPGRADE, &models.ReleaseDetail{
+			CurrentVersion: version.String(),
+			OS:             osRuntime.GOOS,
+			ARCH:           osRuntime.GOARCH,
+		})
+	})
+	appMenu.AddSeparator()
+	// hide menu
+	appMenu.AddText(fmt.Sprintf("Hide %s", appName.String()), keys.CmdOrCtrl("h"), func(_ *menu.CallbackData) {
+		runtime.Hide(app.Ctx)
+	})
+	appMenu.AddSeparator()
+	// quit menu
+	appMenu.AddText(fmt.Sprintf("Quit %s", appName.String()), keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
+		runtime.Quit(app.Ctx)
+	})
 
 	// File menu
 	if osRuntime.GOOS == "darwin" {
 		// on macos platform, we should append EditMenu to enable Cmd+C,Cmd+V,Cmd+Z... shortcut
-		appMenu.Append(menu.EditMenu())
+		rootMenu.Append(menu.EditMenu())
 	}
 
-	return appMenu
+	// Window menu available in v2.5
+	rootMenu.Append(menu.WindowMenu())
+
+	return rootMenu
 }
 
 func (a *App) createFolderIfNotExists() error {
@@ -205,4 +261,125 @@ func (a *App) initLog() {
 	a.Log = logger.Sugar()
 
 	defer a.Log.Sync()
+}
+
+func (a *App) DownloadUpgradeFile(req models.DownloadUpgradeFileReq) *models.BaseResponse {
+	// Create a loop to read the response body and write it to the output file
+	urlParts := strings.Split(req.DownloadUrl, "/")
+	fileName := urlParts[len(urlParts)-1]
+	path := filepath.Join(a.Paths.DownloadDir, fileName)
+	// Open or Create the output file
+	output, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		a.Log.Errorf("open download file failed: %v", err)
+		return a.BuildFailed(errcode.HttpErr, err.Error())
+	}
+
+	defer output.Close()
+	a.Log.Infof("start download upgrade file[%s]", path)
+
+	timeout := 10 * time.Second
+	client := http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			Dial: (&net.Dialer{
+				Timeout: timeout,
+			}).Dial,
+			ResponseHeaderTimeout: timeout,
+			TLSHandshakeTimeout:   timeout,
+		},
+	}
+	// Send HTTP GET request
+	response, err := client.Get(req.DownloadUrl)
+	if err != nil {
+		a.Log.Errorf("get download file failed: %v", err)
+		return a.BuildFailed(errcode.HttpErr, err.Error())
+	}
+	defer response.Body.Close()
+	// Get the content length of the file
+	fileSize := response.ContentLength
+
+	// Create a buffer(1M) to store downloaded data
+	buffer := make([]byte, 8*1024*1024)
+
+	// Create a variable to keep track of the total downloaded bytes
+	var downloadedBytes int64
+	// Create a variable to store the start time
+	startTime := time.Now()
+	var elapsedTime float64
+	progressChan := make(chan *progress, 100)
+	go TrackProgress(progressChan, fileSize, a)
+	for {
+		// Read data from the response body
+		n, err := response.Body.Read(buffer)
+		if err != nil && err != io.EOF {
+			a.Log.Errorf("read buffer failed: %v", err)
+			return a.BuildFailed(errcode.HttpErr, err.Error())
+		}
+		// Break the loop if we reach the end of the response body
+		if n == 0 {
+			executeUpgrade(a, path)
+			break
+		}
+		// Write the downloaded data to the output file
+		_, err = output.Write(buffer[:n])
+		if err != nil {
+			a.Log.Errorf("write buffer failed: %v", err)
+			return a.BuildFailed(errcode.HttpErr, err.Error())
+		}
+		// Update the downloaded bytes count
+		downloadedBytes += int64(n)
+		// Calculate the elapsed time
+		elapsedTime = time.Since(startTime).Seconds()
+		progressChan <- &progress{
+			downloadedBytes: downloadedBytes,
+			elapsedTime:     elapsedTime,
+		}
+	}
+
+	return a.BuildSucess(nil)
+}
+
+func executeUpgrade(app *App, filePath string) error {
+	cmd := exec.Command("open", filePath)
+	err := cmd.Run()
+	if err != nil {
+		app.Log.Errorf("open application ile failed: %v", err)
+		return err
+	}
+	runtime.Quit(app.Ctx)
+
+	return nil
+}
+
+func TrackProgress(ch chan *progress, fileSize int64, app *App) {
+	latestProgress := &progress{}
+	go func(latestProgress *progress) {
+		for {
+			progress := <-ch
+			app.Log.Infof("download progress %#v", progress)
+			latestProgress.downloadedBytes = progress.downloadedBytes
+			latestProgress.elapsedTime = progress.elapsedTime
+		}
+	}(latestProgress)
+
+	ticker := time.NewTicker(time.Second)
+	for {
+		<-ticker.C
+		percentage := float64(latestProgress.downloadedBytes) / float64(fileSize) * 100
+
+		rate := float64(latestProgress.downloadedBytes) / latestProgress.elapsedTime
+		progress := &models.UpgradeProgress{
+			// Calculate the download progress
+			Percentage: percentage,
+			Rate:       rate,
+		}
+		// publish progress to the frontend
+		runtime.EventsEmit(app.Ctx, resource.UPGRADE_PROGRESS, progress)
+		app.Log.Infof("downloading percentage %#v", progress)
+		if percentage >= 100 {
+			ticker.Stop()
+			return
+		}
+	}
 }

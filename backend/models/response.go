@@ -41,3 +41,16 @@ type BucketDetail struct {
 	Bucket string `json:"bucket"`
 	Custom bool   `json:"custom"`
 }
+
+type ReleaseDetail struct {
+	CurrentVersion string `json:"currentVersion"`
+	OS             string `json:"os"`
+	ARCH           string `json:"arch"`
+}
+
+type UpgradeProgress struct {
+	//store the percentage progress
+	Percentage float64 `json:"percentage"`
+	//store the download rate,unit:kb/s
+	Rate float64 `json:"rate"`
+}

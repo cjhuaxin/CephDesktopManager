@@ -10,6 +10,10 @@ export function BuildSucess(arg1) {
   return window['go']['backend']['App']['BuildSucess'](arg1);
 }
 
+export function DownloadUpgradeFile(arg1) {
+  return window['go']['backend']['App']['DownloadUpgradeFile'](arg1);
+}
+
 export function GetTimeoutContext() {
   return window['go']['backend']['App']['GetTimeoutContext']();
 }

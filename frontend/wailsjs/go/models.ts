@@ -104,6 +104,18 @@ export namespace models {
 	        this.keys = source["keys"];
 	    }
 	}
+	export class DownloadUpgradeFileReq {
+	    downloadUrl: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DownloadUpgradeFileReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.downloadUrl = source["downloadUrl"];
+	    }
+	}
 	export class GetConnectionDetailReq {
 	    connectionId: string;
 	

@@ -19,6 +19,8 @@
     "@mui/x-data-grid": "^6.8.0",
     "@tsmx/human-readable": "^2.0.0",
     "@types/react-router-dom": "^5.3.3",
+    "axios": "^1.4.0",
+    "file-saver": "^2.0.5",
     "moment": "^2.29.4",
     "pretty-bytes": "^6.1.0",
     "pubsub-js": "^1.9.4",
@@ -29,6 +31,7 @@
     "use-react-router-breadcrumbs": "^4.0.1"
   },
   "devDependencies": {
+    "@types/file-saver": "^2.0.5",
     "@types/node": "^20.3.1",
     "@types/pubsub-js": "^1.8.3",
     "@types/react": "^18.0.17",

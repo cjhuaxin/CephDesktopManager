@@ -309,8 +309,8 @@ export default function ConnectionDetailDialog() {
                 </Box>
             </DialogContent>
             <DialogActions>
+                <Button variant="contained" onClick={handleClickSaveConnection}>Save</Button>
                 <Button onClick={handleCloseDialog}>Cancel</Button>
-                <Button onClick={handleClickSaveConnection}>Save</Button>
             </DialogActions>
         </Dialog>
     );

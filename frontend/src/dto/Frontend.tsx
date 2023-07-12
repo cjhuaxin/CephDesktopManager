@@ -31,3 +31,18 @@ export type ListObjectsItem = {
     size: number;
     lastModified: string;
 }
+
+export type ReleaseDetail = {
+    id: number;
+    html_url: string;
+    tag_name: string;
+    body: string;
+    draft: boolean;
+    prerelease: boolean;
+    published_at: string;
+    assets: {
+        id: number;
+        name: string;
+        browser_download_url: string;
+    }[];
+}

@@ -26,3 +26,14 @@ export interface BucketDetail {
     bucket: string;
     custom: boolean;
 }
+
+export interface UpgradeDetail {
+    currentVersion: string;
+    os: string;
+    arch: string;
+}
+
+export interface UpgradeProgress {
+    percentage: number;
+    rate: number;
+}

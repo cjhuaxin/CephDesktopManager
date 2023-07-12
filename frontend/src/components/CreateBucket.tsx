@@ -96,8 +96,8 @@ export default function CreateBucket({ connectionId }: any) {
                     />
                 </DialogContent>
                 <DialogActions>
+                    <Button variant="contained" onClick={handleSave}>Save</Button>
                     <Button onClick={handleClose}>Cancel</Button>
-                    <Button onClick={handleSave}>Save</Button>
                 </DialogActions>
             </Dialog>
         </div>

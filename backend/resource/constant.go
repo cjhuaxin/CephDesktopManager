@@ -2,6 +2,7 @@ package resource
 
 const (
 	AppTitle          = "Ceph Desktop Manager"
+	AppName           = "CephDesktopManager"
 	DefaultRegion     = "default"
 	KeyTypeEncryption = "encryption"
 
@@ -12,7 +13,16 @@ const (
 	DirPathDb       = "db"
 	DirPathlog      = "log"
 	DirPathTmp      = "tmp"
-	DirPathDownload = "download"
+	DirPathDownload = "Downloads"
 
-	DatabaseFile  = "cdm.db"
+	DatabaseFile = "cdm.db"
+
+	IconPath        = "build/icon/"
+	IconAppIcon     = IconPath + "appicon.png"
+	IconUpgradeIcon = IconPath + "upgrade.png"
+)
+
+const (
+	CHECK_UPGRADE    = "CHECK_UPGRADE"
+	UPGRADE_PROGRESS = "UPGRADE_PROGRESS"
 )

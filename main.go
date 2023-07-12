@@ -11,16 +11,16 @@ var (
 	//go:embed all:frontend/dist
 	assets embed.FS
 
+	//go:embed build/appicon.png
+	appicon []byte
+
 	//go:embed wails.json
 	wailsJSON []byte
-
-	//go:embed build/appicon.png
-	aboutIcon []byte
 )
 
 func main() {
 	// Create application with options
-	err := wails.Run(backend.WailsInit(assets, wailsJSON, aboutIcon))
+	err := wails.Run(backend.WailsInit(assets, appicon, wailsJSON))
 
 	if err != nil {
 		println("Error:", err.Error())

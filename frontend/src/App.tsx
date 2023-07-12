@@ -2,11 +2,12 @@ import { Box, CssBaseline, FormControl, Grid } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import './App.css';
 import ConnectionList from './components/ConnectionList';
+import GlobalConfirm from './components/GlobalConfirm';
 import GlobalLoading from './components/GlobalLoading';
 import GlobalSnackbar from './components/GlobalSnackbar';
 import NewConnection from './components/NewConnection';
 import ObjectListTable from './components/ObjectListTable';
-import GlobalConfirm from './components/GlobalConfirm';
+import UpgradeDialog from './components/UpgradeDialog';
 
 const cdmTheme = createTheme({
     typography: {
@@ -21,7 +22,6 @@ const cdmTheme = createTheme({
 });
 
 function App() {
-
     return (
         <ThemeProvider theme={cdmTheme}>
             <CssBaseline />
@@ -43,6 +43,7 @@ function App() {
             <GlobalSnackbar />
             <GlobalLoading />
             <GlobalConfirm />
+            <UpgradeDialog />
         </ThemeProvider>
     )
 }

@@ -11,4 +11,5 @@ const (
 	InvalidEndpointErr = "000104"
 	AesEncryptErr      = "000105"
 	FileErr            = "000106"
+	HttpErr            = "000107"
 )

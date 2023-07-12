@@ -12,3 +12,7 @@ export const ALERT_TYPE_INFO = "info"
 export const ALERT_TYPE_SUCCESS = "success"
 export const ALERT_TYPE_WARNING = "warning"
 export const ALERT_TYPE_ERROR = "error"
+
+//backend Event name
+export const CHECK_UPGRADE = "CHECK_UPGRADE"
+export const UPGRADE_PROGRESS = "UPGRADE_PROGRESS"
