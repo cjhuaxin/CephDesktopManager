@@ -4,7 +4,6 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"os"
@@ -16,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cavaliergopher/grab/v3"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 
 	"github.com/cjhuaxin/CephDesktopManager/backend/errcode"
@@ -276,10 +276,9 @@ func (a *App) DownloadUpgradeFile(req models.DownloadUpgradeFileReq) *models.Bas
 	}
 
 	defer output.Close()
-	a.Log.Infof("start download upgrade file[%s]", path)
 
 	timeout := 10 * time.Second
-	client := http.Client{
+	httpClient := &http.Client{
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			Dial: (&net.Dialer{
@@ -289,59 +288,53 @@ func (a *App) DownloadUpgradeFile(req models.DownloadUpgradeFileReq) *models.Bas
 			TLSHandshakeTimeout:   timeout,
 		},
 	}
-	// Send HTTP GET request
-	response, err := client.Get(req.DownloadUrl)
+
+	client := grab.NewClient()
+	client.HTTPClient = httpClient
+	downloadReq, err := grab.NewRequest(path, req.DownloadUrl)
 	if err != nil {
-		a.Log.Errorf("get download file failed: %v", err)
+		a.Log.Errorf("new download grab request failed: %v", err)
 		return a.BuildFailed(errcode.HttpErr, err.Error())
 	}
-	defer response.Body.Close()
-	// Get the content length of the file
-	fileSize := response.ContentLength
+	a.Log.Infof("start download upgrade file[%s]", path)
+	resp := client.Do(downloadReq)
 
-	// Create a buffer(1M) to store downloaded data
-	buffer := make([]byte, 8*1024*1024)
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
 
-	// Create a variable to keep track of the total downloaded bytes
-	var downloadedBytes int64
-	// Create a variable to store the start time
-	startTime := time.Now()
-	var elapsedTime float64
-	progressChan := make(chan *progress, 100)
-	go TrackProgress(progressChan, fileSize, a)
+Loop:
 	for {
-		// Read data from the response body
-		n, err := response.Body.Read(buffer)
-		if err != nil && err != io.EOF {
-			a.Log.Errorf("read buffer failed: %v", err)
-			return a.BuildFailed(errcode.HttpErr, err.Error())
-		}
-		// Break the loop if we reach the end of the response body
-		if n == 0 {
+		select {
+		case <-ticker.C:
+			percentage := resp.Progress() * 100
+
+			rate := float64(resp.BytesComplete()) / time.Since(resp.Start).Seconds()
+			progress := &models.UpgradeProgress{
+				// Calculate the download progress
+				Percentage: percentage,
+				Rate:       rate,
+			}
+			// publish progress to the frontend
+			runtime.EventsEmit(a.Ctx, resource.UPGRADE_PROGRESS, progress)
+			a.Log.Infof("downloading percentage %#v", progress)
+		case <-resp.Done:
+			// download is complete
+			a.Log.Infof("download completed, cost %fs", resp.End.Sub(resp.Start).Seconds())
 			executeUpgrade(a, path)
-			break
+			break Loop
 		}
-		// Write the downloaded data to the output file
-		_, err = output.Write(buffer[:n])
-		if err != nil {
-			a.Log.Errorf("write buffer failed: %v", err)
-			return a.BuildFailed(errcode.HttpErr, err.Error())
-		}
-		// Update the downloaded bytes count
-		downloadedBytes += int64(n)
-		// Calculate the elapsed time
-		elapsedTime = time.Since(startTime).Seconds()
-		progressChan <- &progress{
-			downloadedBytes: downloadedBytes,
-			elapsedTime:     elapsedTime,
-		}
+	}
+
+	if err := resp.Err(); err != nil {
+		a.Log.Errorf("download upgrade file failed: %v", err)
+		return a.BuildFailed(errcode.HttpErr, err.Error())
 	}
 
 	return a.BuildSucess(nil)
 }
 
 func executeUpgrade(app *App, filePath string) error {
-	cmd := exec.Command("open", filePath)
+	cmd := exec.Command("open", "-n", filePath)
 	err := cmd.Run()
 	if err != nil {
 		app.Log.Errorf("open application ile failed: %v", err)
@@ -350,36 +343,4 @@ func executeUpgrade(app *App, filePath string) error {
 	runtime.Quit(app.Ctx)
 
 	return nil
-}
-
-func TrackProgress(ch chan *progress, fileSize int64, app *App) {
-	latestProgress := &progress{}
-	go func(latestProgress *progress) {
-		for {
-			progress := <-ch
-			app.Log.Infof("download progress %#v", progress)
-			latestProgress.downloadedBytes = progress.downloadedBytes
-			latestProgress.elapsedTime = progress.elapsedTime
-		}
-	}(latestProgress)
-
-	ticker := time.NewTicker(time.Second)
-	for {
-		<-ticker.C
-		percentage := float64(latestProgress.downloadedBytes) / float64(fileSize) * 100
-
-		rate := float64(latestProgress.downloadedBytes) / latestProgress.elapsedTime
-		progress := &models.UpgradeProgress{
-			// Calculate the download progress
-			Percentage: percentage,
-			Rate:       rate,
-		}
-		// publish progress to the frontend
-		runtime.EventsEmit(app.Ctx, resource.UPGRADE_PROGRESS, progress)
-		app.Log.Infof("downloading percentage %#v", progress)
-		if percentage >= 100 {
-			ticker.Stop()
-			return
-		}
-	}
 }

@@ -14,7 +14,7 @@ import axios from 'axios';
 import prettyBytes from 'pretty-bytes';
 import React from "react";
 import { DownloadUpgradeFile } from "../../wailsjs/go/backend/App";
-import { EventsOn } from "../../wailsjs/runtime/runtime";
+import { EventsOff, EventsOn } from "../../wailsjs/runtime/runtime";
 import { ALERT_TYPE_ERROR, CHECK_UPGRADE, TOPIC_ALERT, TOPIC_LOADING, UPGRADE_PROGRESS } from "../constants/Pubsub";
 import { UpgradeDetail, UpgradeProgress } from "../dto/BackendRes";
 import { ReleaseDetail } from "../dto/Frontend";
@@ -34,6 +34,16 @@ export default function UpgradeDialog() {
 
     const handleClose = () => {
         setOpen(false);
+        //clear upgrade progress
+        setPercentage(0);
+        setRate("");
+        setUpgradeLoading(false);
+        currentVersion.current = "";
+        latestVersion.current = "";
+        hasNewVersion.current = true;
+        downloadUrl.current = "";
+        displayProgress.current = "";
+        EventsOff(UPGRADE_PROGRESS);
     };
 
     const handleUpgrade = () => {
@@ -62,8 +72,6 @@ export default function UpgradeDialog() {
                 let body: ReleaseDetail = response.data;
                 let currentVersionArray = currentVersion.current.split(".");
                 let latestVersionArray = body.tag_name.substring(1).split(".");
-                console.log("currentVersionArray", currentVersionArray)
-                console.log("latestVersionArray", latestVersionArray)
                 for (let i = 0; i < currentVersionArray.length; i++) {
                     // From left to right, compare the version number sizes in order.
                     if (Number(currentVersionArray[i]) > Number(latestVersionArray[i])) {
@@ -99,7 +107,6 @@ export default function UpgradeDialog() {
                 PubSub.publish(TOPIC_LOADING, false);
                 setOpen(true)
             }).catch(function (error) {
-                console.log(error);
                 PubSub.publish(TOPIC_LOADING, false);
                 PubSub.publish(TOPIC_ALERT, {
                     alertType: ALERT_TYPE_ERROR,
@@ -109,7 +116,6 @@ export default function UpgradeDialog() {
         });
 
         EventsOn(UPGRADE_PROGRESS, (result: UpgradeProgress) => {
-            console.log("progress result", result);
             setPercentage(Math.floor(result.percentage));
             setRate(prettyBytes(result.rate));
             displayProgress.current = "flex";
