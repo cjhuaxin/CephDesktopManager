@@ -28,7 +28,7 @@ export default function UpgradeDialog() {
 
     const currentVersion = React.useRef("");
     const latestVersion = React.useRef("");
-    const hasNewVersion = React.useRef(true);
+    const hasNewVersion = React.useRef(false);
     const downloadUrl = React.useRef("");
     const displayProgress = React.useRef("none");
 
@@ -40,7 +40,7 @@ export default function UpgradeDialog() {
         setUpgradeLoading(false);
         currentVersion.current = "";
         latestVersion.current = "";
-        hasNewVersion.current = true;
+        hasNewVersion.current = false;
         downloadUrl.current = "";
         displayProgress.current = "";
         EventsOff(UPGRADE_PROGRESS);
@@ -73,10 +73,11 @@ export default function UpgradeDialog() {
                 let currentVersionArray = currentVersion.current.split(".");
                 let latestVersionArray = body.tag_name.substring(1).split(".");
                 for (let i = 0; i < currentVersionArray.length; i++) {
+                    console.log("Number(currentVersionArray[i]", Number(currentVersionArray[i]));
+                    console.log("Number(latestVersionArray[i]", Number(latestVersionArray[i]));
                     // From left to right, compare the version number sizes in order.
-                    if (Number(currentVersionArray[i]) > Number(latestVersionArray[i])) {
-                        console.log("current:" + Number(currentVersionArray[i]) + "| latest:" + Number(latestVersionArray[i]));
-                        hasNewVersion.current = false;
+                    if (Number(currentVersionArray[i]) < Number(latestVersionArray[i])) {
+                        hasNewVersion.current = true;
                         break;
                     }
                 }

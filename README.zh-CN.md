@@ -44,6 +44,7 @@ Ceph Desktop Manager是开源的，安全的应用程序，但由于苹果的严
 
 <div >
     <img src="https://cdn.jsdelivr.net/gh/cjhuaxin/CephDesktopManager@42c9e26e25cc5fafd6a1c52fa06fbc225c51e0e3/build/screenshot/1688547585175-unidentified.jpg" width="40%">
+    <img src="https://cdn.jsdelivr.net/gh/cjhuaxin/CephDesktopManager@430bc6b78627db4be64edc086ac8a63b8712dd43/build/screenshot/1689228356040-confirmOpen-ch.jpg" width="40%">
 </div>
 
 <div >
