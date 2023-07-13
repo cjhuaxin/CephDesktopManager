@@ -94,7 +94,8 @@ If you encounter the can't open problem, please refer to [Open Mac App from an u
 - [] SSH support[⭐️⭐️]
 
 ### 👨🏻‍💻 App
-- [] Upgrade feature[⭐️⭐️⭐️⭐️]
+- [x] Upgrade feature[⭐️⭐️⭐️⭐️]
+- [] Automatically checks and downloads latest update file[⭐️⭐️]
 - [] Configure the download directory[⭐️⭐️]
 - [] Connection Configuration Sync on Cloud[⭐️]
 
