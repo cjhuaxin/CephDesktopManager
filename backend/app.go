@@ -178,7 +178,7 @@ func buildAppMenu(wailsJson, appicon []byte, app *App) *menu.Menu {
 	version := gjson.GetBytes(wailsJson, "info.productVersion")
 	aboutMessage := fmt.Sprintf("Version %s\n\n Copyright © 2022 cjhuaxin", version.String())
 	//app menu
-	appMenu := rootMenu.AddSubmenu(appName.Raw)
+	appMenu := rootMenu.AddSubmenu(appName.String())
 	// about menu
 	appMenu.AddText(fmt.Sprintf("About %s", appName.String()), nil, func(_ *menu.CallbackData) {
 		runtime.MessageDialog(app.Ctx, runtime.MessageDialogOptions{
