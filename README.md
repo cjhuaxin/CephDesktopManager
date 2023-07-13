@@ -106,6 +106,8 @@ If you encounter the can't open problem, please refer to [Open Mac App from an u
 
 ![download](https://cdn.jsdelivr.net/gh/cjhuaxin/CephDesktopManager@af765f47e865a2aace154091e1d61036b8d91804/build/screenshot/1688470177806-download.jpg)
 
+![upgrade](https://cdn.jsdelivr.net/gh/cjhuaxin/CephDesktopManager@9974759f0ea48363c09e17d60e895914c8efc7b7/build/screenshot/1689217445-upgrade.jpg)
+
 
 ## Easy-to-use open source command-line tool for S3
 ### <font size=5>[s5cmd](https://github.com/peak/s5cmd)</font> [![s3cmd](https://img.shields.io/github/stars/peak/s5cmd)](https://github.com/peak/s5cmd)

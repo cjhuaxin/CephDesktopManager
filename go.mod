@@ -31,7 +31,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.19.2 // indirect
 	github.com/aws/smithy-go v1.13.5 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
-	github.com/cavaliergopher/grab/v3 v3.0.1 // indirect
+	github.com/cavaliergopher/grab/v3 v3.0.1
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/google/uuid v1.3.0 // indirect
