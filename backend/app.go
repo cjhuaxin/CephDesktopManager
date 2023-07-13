@@ -48,11 +48,6 @@ type App struct {
 	Ctx context.Context
 }
 
-type progress struct {
-	downloadedBytes int64
-	elapsedTime     float64
-}
-
 func WailsInit(assets embed.FS, appicon, wailsJson []byte) *options.App {
 	baseService := &base.Service{}
 	// Create an instance of the app structure
