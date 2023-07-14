@@ -54,3 +54,8 @@ type UpgradeProgress struct {
 	//store the download rate,unit:kb/s
 	Rate float64 `json:"rate"`
 }
+
+type BucketInfo struct {
+	Location string `json:"location"`
+
+}

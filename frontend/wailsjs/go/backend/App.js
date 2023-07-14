@@ -14,6 +14,10 @@ export function DownloadUpgradeFile(arg1) {
   return window['go']['backend']['App']['DownloadUpgradeFile'](arg1);
 }
 
+export function GetCachedS3Client(arg1) {
+  return window['go']['backend']['App']['GetCachedS3Client'](arg1);
+}
+
 export function GetTimeoutContext() {
   return window['go']['backend']['App']['GetTimeoutContext']();
 }

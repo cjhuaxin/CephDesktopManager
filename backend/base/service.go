@@ -97,7 +97,20 @@ func (s *Service) InitAndCacheS3Client(connectionId string) (*s3.Client, error) 
 	return s3Client, nil
 }
 
-func (s *Service) GetTimeoutContext() context.Context {
-	ctx, _ := context.WithTimeout(context.TODO(), 10*time.Second)
-	return ctx
+func (s *Service) GetTimeoutContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.TODO(), 10*time.Second)
+}
+
+func (s *Service) GetCachedS3Client(connectionId string) (*s3.Client, error) {
+	s3Clinet, ok := s.S3ClientMap[connectionId]
+	if !ok {
+		var err error
+		s.Log.Errorf("connection[%s] is lost,start to reconnect", connectionId)
+		s3Clinet, err = s.InitAndCacheS3Client(connectionId)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return s3Clinet, nil
 }

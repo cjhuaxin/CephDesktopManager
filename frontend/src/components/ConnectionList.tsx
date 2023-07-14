@@ -14,11 +14,17 @@ import ConnectionMore from './ConnectionMore';
 import CreateBucket from './CreateBucket';
 
 const originBucketStyle = {
+    fontWeight: 900,
     color: "#20B2AA"
 }
 
 const customBucketStyle = {
-    color: "#DEB887"
+    fontWeight: 900,
+    color: "#895913"
+}
+
+const listLabelStyle = {
+    fontWeight: 900
 }
 
 const ConnectionList = () => {
@@ -150,14 +156,19 @@ const ConnectionList = () => {
                     connectionList.map((item: ConnectionItem) => (
                         <ListItem
                             key={item.id}
-                            style={{ display: 'block' }}
+                            sx={{
+                                display: "block",
+                            }}
                         >
                             <Divider />
                             <ListItemButton
                                 selected={item.id === currentSelectedConn}
                                 data-item-id={item.id}
                                 onClick={handleClickItem}>
-                                <ListItemText primary={item.name} />
+                                <ListItemText
+                                    primaryTypographyProps={{ style: listLabelStyle }}
+                                    primary={item.name}
+                                />
                                 <CreateBucket connectionId={item.id} />
                                 <ConnectionMore connectionId={item.id} connectionName={item.name} />
                                 {expandMap.get(item.id) ? <ExpandLess /> : <ExpandMore />}

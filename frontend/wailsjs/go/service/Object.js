@@ -18,6 +18,10 @@ export function DownloadObjects(arg1) {
   return window['go']['service']['Object']['DownloadObjects'](arg1);
 }
 
+export function GetCachedS3Client(arg1) {
+  return window['go']['service']['Object']['GetCachedS3Client'](arg1);
+}
+
 export function GetTimeoutContext() {
   return window['go']['service']['Object']['GetTimeoutContext']();
 }

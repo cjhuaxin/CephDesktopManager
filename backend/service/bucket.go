@@ -37,7 +37,9 @@ func (s *Bucket) ListBuckets(req *models.ListBucketsReq) *models.BaseResponse {
 	}
 
 	// query bucket list from ceph
-	output, err := s3Client.ListBuckets(s.GetTimeoutContext(), &s3.ListBucketsInput{})
+	ctx, cancel := s.GetTimeoutContext()
+	defer cancel()
+	output, err := s3Client.ListBuckets(ctx, &s3.ListBucketsInput{})
 	if err != nil {
 		s.Log.Errorf("list buckets error: %v", err)
 		return s.BuildFailed(errcode.CephErr, err.Error())
@@ -89,15 +91,17 @@ func (s *Bucket) AddCustomBucket(req *models.AddCustomBucketReq) *models.BaseRes
 }
 
 func (s *Bucket) CreateBucket(req *models.CreateBucketReq) *models.BaseResponse {
-	s3Clinet, ok := s.S3ClientMap[req.ConnectionId]
-	if !ok {
-		s.Log.Errorf("connection[%s] is lost", req.ConnectionId)
-		return s.BuildFailed(errcode.UnExpectedErr, "connection is lost,please re-connect")
+	s3Client, err := s.GetCachedS3Client(req.ConnectionId)
+	if err != nil {
+		s.Log.Errorf("get connection[%s] failed: %v", req.ConnectionId, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
 	}
 	input := &s3.CreateBucketInput{
 		Bucket: aws.String(req.Bucket),
 	}
-	_, err := s3Clinet.CreateBucket(s.GetTimeoutContext(), input)
+	ctx, cancel := s.GetTimeoutContext()
+	defer cancel()
+	_, err = s3Client.CreateBucket(ctx, input)
 	if err != nil {
 		s.Log.Errorf("create bucket to db failed: %v", err)
 		return s.BuildFailed(errcode.CephErr, err.Error())
@@ -116,12 +120,14 @@ func (s *Bucket) DeleteBucket(req *models.DeleteBucketReq) *models.BaseResponse 
 		}
 	} else {
 		// delete the real bucket
-		s3Clinet, ok := s.S3ClientMap[req.ConnectionId]
+		s3Client, ok := s.S3ClientMap[req.ConnectionId]
 		if !ok {
 			s.Log.Errorf("connection[%s] is lost", req.ConnectionId)
 			return s.BuildFailed(errcode.UnExpectedErr, "connection is lost,please re-connect")
 		}
-		_, err := s3Clinet.DeleteBucket(s.GetTimeoutContext(), &s3.DeleteBucketInput{
+		ctx, cancel := s.GetTimeoutContext()
+		defer cancel()
+		_, err := s3Client.DeleteBucket(ctx, &s3.DeleteBucketInput{
 			Bucket: aws.String(req.Bucket),
 		})
 		if err != nil {
@@ -131,4 +137,26 @@ func (s *Bucket) DeleteBucket(req *models.DeleteBucketReq) *models.BaseResponse 
 	}
 
 	return s.BuildSucess(nil)
+}
+
+func (s *Bucket) GetBucketInfo(req *models.GetBucketInfoReq) *models.BaseResponse {
+	s3Client, err := s.GetCachedS3Client(req.ConnectionId)
+	if err != nil {
+		s.Log.Errorf("get connection[%s] failed: %v", req.ConnectionId, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
+	}
+
+	bucketInfo := &models.BucketInfo{}
+	ctx, cancel := s.GetTimeoutContext()
+	defer cancel()
+	headResp, err := s3Client.HeadBucket(ctx, &s3.HeadBucketInput{
+		Bucket: aws.String(req.Bucket),
+	})
+	if err == nil {
+		bucketInfo.Location = headResp.ResultMetadata.Get("location").(string)
+	} else {
+		s.Log.Errorf("head bucket failed: %v", err)
+	}
+
+	return s.BuildSucess(bucketInfo)
 }

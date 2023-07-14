@@ -467,8 +467,11 @@ export default function ObjectListTable() {
     }, []);
 
     return (
-        <Box sx={{ display: display }}>
-            <Grid container spacing={2}>
+        <Box
+            sx={{
+                display: display
+            }}>
+            <Grid container spacing={1}>
                 <Grid item xs={8}>
                     <Breadcrumbs aria-label="breadcrumb">
                         <LinkRouter
@@ -512,7 +515,7 @@ export default function ObjectListTable() {
                     <SearchInput connectionId={connectionId.current} bucket={bucket.current} prefix={prefix.current} />
                 </Grid>
             </Grid>
-            <div style={{ height: '87vh', width: '100%' }}>
+            <div style={{ height: '80vh', width: '100%' }}>
                 <DataGrid
                     pageSizeOptions={[PAGE_SIZE]}
                     paginationMode="server"
@@ -529,7 +532,6 @@ export default function ObjectListTable() {
                 showFirstButton
                 sx={{
                     marginTop: 1,
-                    marginBottom: 1,
                     float: "right",
                 }}
                 count={0}
@@ -551,6 +553,6 @@ export default function ObjectListTable() {
                     }
                 }
             />
-        </Box >
+        </Box>
     );
 }

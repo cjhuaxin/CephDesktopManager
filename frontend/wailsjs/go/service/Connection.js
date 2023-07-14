@@ -14,6 +14,10 @@ export function DeleteConnection(arg1) {
   return window['go']['service']['Connection']['DeleteConnection'](arg1);
 }
 
+export function GetCachedS3Client(arg1) {
+  return window['go']['service']['Connection']['GetCachedS3Client'](arg1);
+}
+
 export function GetConnectionDetail(arg1) {
   return window['go']['service']['Connection']['GetConnectionDetail'](arg1);
 }

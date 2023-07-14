@@ -116,6 +116,20 @@ export namespace models {
 	        this.downloadUrl = source["downloadUrl"];
 	    }
 	}
+	export class GetBucketInfoReq {
+	    connectionId: string;
+	    bucket: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new GetBucketInfoReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.connectionId = source["connectionId"];
+	        this.bucket = source["bucket"];
+	    }
+	}
 	export class GetConnectionDetailReq {
 	    connectionId: string;
 	

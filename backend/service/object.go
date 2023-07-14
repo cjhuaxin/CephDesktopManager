@@ -31,10 +31,10 @@ func (s *Object) Init() error {
 }
 
 func (s *Object) ListObjects(req *models.ListObjectsReq) *models.BaseResponse {
-	s3Clinet, ok := s.S3ClientMap[req.ConnectionId]
-	if !ok {
-		s.Log.Errorf("connection[%s] is lost", req.ConnectionId)
-		return s.BuildFailed(errcode.UnExpectedErr, "connection is lost,please re-connect")
+	s3Client, err := s.GetCachedS3Client(req.ConnectionId)
+	if err != nil {
+		s.Log.Errorf("get connection[%s] failed: %v", req.ConnectionId, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
 	}
 	input := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(req.Bucket),
@@ -49,8 +49,9 @@ func (s *Object) ListObjects(req *models.ListObjectsReq) *models.BaseResponse {
 	if req.Delimiter != "" {
 		input.Delimiter = aws.String(req.Delimiter)
 	}
-
-	output, err := s3Clinet.ListObjectsV2(s.GetTimeoutContext(), input)
+	ctx, cancel := s.GetTimeoutContext()
+	defer cancel()
+	output, err := s3Client.ListObjectsV2(ctx, input)
 	if err != nil {
 		s.Log.Errorf("list objects[bucket=%s] failed: %v", req.Bucket, err)
 		return s.BuildFailed(errcode.CephErr, err.Error())
@@ -106,13 +107,13 @@ func (s *Object) ListObjects(req *models.ListObjectsReq) *models.BaseResponse {
 }
 
 func (s *Object) DownloadObjects(req *models.DownloadObjectsReq) *models.BaseResponse {
-	s3Clinet, ok := s.S3ClientMap[req.ConnectionId]
-	if !ok {
-		s.Log.Errorf("connection[%s] is lost", req.ConnectionId)
-		return s.BuildFailed(errcode.UnExpectedErr, "connection is lost,please re-connect")
+	s3Client, err := s.GetCachedS3Client(req.ConnectionId)
+	if err != nil {
+		s.Log.Errorf("get connection[%s] failed: %v", req.ConnectionId, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
 	}
 
-	downloader := util.CreateS3Downloader(s3Clinet)
+	downloader := util.CreateS3Downloader(s3Client)
 	//query connection name for make directory
 	stmt, err := s.DbClient.Prepare("SELECT name FROM connection WHERE id = ?")
 	if err != nil {
@@ -189,10 +190,10 @@ func (s *Object) PrepareForUploading(req *models.PrepareForUploadingReq) *models
 }
 
 func (s *Object) DeleteObjects(req *models.DeleteObjectsReq) *models.BaseResponse {
-	s3Clinet, ok := s.S3ClientMap[req.ConnectionId]
-	if !ok {
-		s.Log.Errorf("connection[%s] is lost", req.ConnectionId)
-		return s.BuildFailed(errcode.UnExpectedErr, "connection is lost,please re-connect")
+	s3Client, err := s.GetCachedS3Client(req.ConnectionId)
+	if err != nil {
+		s.Log.Errorf("get connection[%s] failed: %v", req.ConnectionId, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
 	}
 	identifiers := make([]types.ObjectIdentifier, 0, len(req.Keys))
 	for _, key := range req.Keys {
@@ -206,7 +207,9 @@ func (s *Object) DeleteObjects(req *models.DeleteObjectsReq) *models.BaseRespons
 			Objects: identifiers,
 		},
 	}
-	output, err := s3Clinet.DeleteObjects(s.GetTimeoutContext(), input)
+	ctx, cancel := s.GetTimeoutContext()
+	defer cancel()
+	output, err := s3Client.DeleteObjects(ctx, input)
 	if err != nil {
 		s.Log.Errorf("delete objects failed: %v", err)
 		return s.BuildFailed(errcode.CephErr, err.Error())

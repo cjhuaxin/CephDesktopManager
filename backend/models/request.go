@@ -63,3 +63,8 @@ type GetConnectionDetailReq struct {
 type DownloadUpgradeFileReq struct {
 	DownloadUrl string `json:"downloadUrl"`
 }
+
+type GetBucketInfoReq struct {
+	ConnectionId string `json:"connectionId"`
+	Bucket       string `json:"bucket"`
+}

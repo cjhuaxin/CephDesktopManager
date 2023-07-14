@@ -22,6 +22,14 @@ export function DeleteBucket(arg1) {
   return window['go']['service']['Bucket']['DeleteBucket'](arg1);
 }
 
+export function GetBucketInfo(arg1) {
+  return window['go']['service']['Bucket']['GetBucketInfo'](arg1);
+}
+
+export function GetCachedS3Client(arg1) {
+  return window['go']['service']['Bucket']['GetCachedS3Client'](arg1);
+}
+
 export function GetTimeoutContext() {
   return window['go']['service']['Bucket']['GetTimeoutContext']();
 }

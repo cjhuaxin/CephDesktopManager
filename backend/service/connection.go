@@ -67,7 +67,9 @@ func (s *Connection) TestS3Connection(req *models.NewConnectionReq) *models.Base
 	if err != nil {
 		return s.BuildFailed(errcode.ConnectionErr, err.Error())
 	}
-	_, err = s3Client.ListBuckets(s.GetTimeoutContext(), &s3.ListBucketsInput{})
+	ctx, cancel := s.GetTimeoutContext()
+	defer cancel()
+	_, err = s3Client.ListBuckets(ctx, &s3.ListBucketsInput{})
 	if err != nil {
 		return s.BuildFailed(errcode.CephErr, err.Error())
 	}
