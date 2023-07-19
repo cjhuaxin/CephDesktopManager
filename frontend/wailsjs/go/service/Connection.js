@@ -14,6 +14,10 @@ export function DeleteConnection(arg1) {
   return window['go']['service']['Connection']['DeleteConnection'](arg1);
 }
 
+export function FixDatabaseLockd() {
+  return window['go']['service']['Connection']['FixDatabaseLockd']();
+}
+
 export function GetCachedS3Client(arg1) {
   return window['go']['service']['Connection']['GetCachedS3Client'](arg1);
 }
@@ -36,6 +40,10 @@ export function Init() {
 
 export function InitAndCacheS3Client(arg1) {
   return window['go']['service']['Connection']['InitAndCacheS3Client'](arg1);
+}
+
+export function InitDbClient() {
+  return window['go']['service']['Connection']['InitDbClient']();
 }
 
 export function QueryEncryptionKey() {

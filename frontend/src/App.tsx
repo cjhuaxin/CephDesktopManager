@@ -43,8 +43,6 @@ function App() {
         }
     });
 
-    console.log("prefersDarkMode", prefersDarkMode)
-
     // Update the theme only if the mode changes
     const cdmTheme = React.useMemo(() => createTheme({
         typography: {

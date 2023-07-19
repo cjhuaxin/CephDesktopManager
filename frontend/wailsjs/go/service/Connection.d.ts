@@ -10,6 +10,8 @@ export function BuildSucess(arg1:any):Promise<models.BaseResponse>;
 
 export function DeleteConnection(arg1:models.DeleteConnectionReq):Promise<models.BaseResponse>;
 
+export function FixDatabaseLockd():Promise<void>;
+
 export function GetCachedS3Client(arg1:string):Promise<s3.Client>;
 
 export function GetConnectionDetail(arg1:models.GetConnectionDetailReq):Promise<models.BaseResponse>;
@@ -21,6 +23,8 @@ export function GetTimeoutContext():Promise<context.Context|context.CancelFunc>;
 export function Init():Promise<void>;
 
 export function InitAndCacheS3Client(arg1:string):Promise<s3.Client>;
+
+export function InitDbClient():Promise<void>;
 
 export function QueryEncryptionKey():Promise<string>;
 

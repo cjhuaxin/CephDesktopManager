@@ -3,6 +3,9 @@ package base
 import (
 	"context"
 	"database/sql"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -113,4 +116,43 @@ func (s *Service) GetCachedS3Client(connectionId string) (*s3.Client, error) {
 	}
 
 	return s3Clinet, nil
+}
+
+func (s *Service) InitDbClient() error {
+	db, err := sql.Open("sqlite", filepath.Join(s.Paths.DbDir, resource.DatabaseFile))
+	if err != nil {
+		s.Log.Errorf("open database error: %v", err)
+		return err
+	}
+
+	s.DbClient = db
+
+	return nil
+}
+
+func (s *Service) FixDatabaseLockd() error {
+	dbPath := filepath.Join(s.Paths.DbDir, resource.DatabaseFile)
+
+	input, err := ioutil.ReadFile(dbPath)
+	if err != nil {
+		s.Log.Errorf("read file[%s] failed: %v", dbPath, err)
+		return err
+	}
+	err = os.Remove(dbPath)
+	if err != nil {
+		s.Log.Errorf("remove file[%s] failed: %v", dbPath, err)
+		return err
+	}
+	err = ioutil.WriteFile(dbPath, input, 0644)
+	if err != nil {
+		s.Log.Errorf("write file[%s] failed: %v", dbPath, err)
+		return err
+	}
+
+	err = s.InitDbClient()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

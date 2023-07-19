@@ -22,6 +22,10 @@ export function DeleteBucket(arg1) {
   return window['go']['service']['Bucket']['DeleteBucket'](arg1);
 }
 
+export function FixDatabaseLockd() {
+  return window['go']['service']['Bucket']['FixDatabaseLockd']();
+}
+
 export function GetBucketInfo(arg1) {
   return window['go']['service']['Bucket']['GetBucketInfo'](arg1);
 }
@@ -40,6 +44,10 @@ export function Init() {
 
 export function InitAndCacheS3Client(arg1) {
   return window['go']['service']['Bucket']['InitAndCacheS3Client'](arg1);
+}
+
+export function InitDbClient() {
+  return window['go']['service']['Bucket']['InitDbClient']();
 }
 
 export function ListBuckets(arg1) {

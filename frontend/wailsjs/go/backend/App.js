@@ -14,6 +14,10 @@ export function DownloadUpgradeFile(arg1) {
   return window['go']['backend']['App']['DownloadUpgradeFile'](arg1);
 }
 
+export function FixDatabaseLockd() {
+  return window['go']['backend']['App']['FixDatabaseLockd']();
+}
+
 export function GetCachedS3Client(arg1) {
   return window['go']['backend']['App']['GetCachedS3Client'](arg1);
 }
@@ -24,6 +28,10 @@ export function GetTimeoutContext() {
 
 export function InitAndCacheS3Client(arg1) {
   return window['go']['backend']['App']['InitAndCacheS3Client'](arg1);
+}
+
+export function InitDbClient() {
+  return window['go']['backend']['App']['InitDbClient']();
 }
 
 export function QueryEncryptionKey() {

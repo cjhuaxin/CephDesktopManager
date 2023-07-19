@@ -10,10 +10,14 @@ export function BuildSucess(arg1:any):Promise<models.BaseResponse>;
 
 export function DownloadUpgradeFile(arg1:models.DownloadUpgradeFileReq):Promise<models.BaseResponse>;
 
+export function FixDatabaseLockd():Promise<void>;
+
 export function GetCachedS3Client(arg1:string):Promise<s3.Client>;
 
 export function GetTimeoutContext():Promise<context.Context|context.CancelFunc>;
 
 export function InitAndCacheS3Client(arg1:string):Promise<s3.Client>;
+
+export function InitDbClient():Promise<void>;
 
 export function QueryEncryptionKey():Promise<string>;

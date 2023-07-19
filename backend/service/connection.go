@@ -3,7 +3,6 @@ package service
 import (
 	"database/sql"
 	"fmt"
-	"path/filepath"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cjhuaxin/CephDesktopManager/backend/base"
@@ -13,7 +12,8 @@ import (
 	"github.com/cjhuaxin/CephDesktopManager/backend/util"
 	"github.com/rs/xid"
 	"github.com/thanhpk/randstr"
-	_ "modernc.org/sqlite"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 type Connection struct {
@@ -27,28 +27,15 @@ func NewConnectionService(baseService *base.Service) *Connection {
 }
 
 func (s *Connection) Init() error {
-	err := s.initDbClient()
+	err := s.InitDbClient()
+	if err != nil {
+		return err
+	}
+	err = s.initTable()
 	if err != nil {
 		return err
 	}
 	s.S3ClientMap = make(map[string]*s3.Client)
-
-	return nil
-}
-
-func (s *Connection) initDbClient() error {
-	db, err := sql.Open("sqlite", filepath.Join(s.Paths.DbDir, resource.DatabaseFile))
-	if err != nil {
-		s.Log.Errorf("open database error: %v", err)
-		return err
-	}
-	err = initTable(db)
-	if err != nil {
-		s.Log.Errorf("create table error: %v", err)
-		return err
-	}
-
-	s.DbClient = db
 
 	return nil
 }
@@ -86,12 +73,32 @@ func (s *Connection) SaveS3Connection(req *models.NewConnectionReq) *models.Base
 	if req.ID == "" {
 		//create a new connection
 		connectionId := xid.New().String()
-		_, err = s.DbClient.Exec(
-			fmt.Sprintf("INSERT INTO connection(id,name,endpoint,ak,sk,region,path_style) values('%s','%s','%s','%s','%s','%s','%d')",
-				connectionId, req.Name, normalizedEndpoint, req.AccessKey, encrypedSk, region, req.PathStyle))
+		sql := fmt.Sprintf("INSERT INTO connection(id,name,endpoint,ak,sk,region,path_style) values('%s','%s','%s','%s','%s','%s','%d')",
+			connectionId, req.Name, normalizedEndpoint, req.AccessKey, encrypedSk, region, req.PathStyle)
+		_, err = s.DbClient.Exec(sql)
 		if err != nil {
-			s.Log.Errorf("save the connection info to db failed: %v", err)
-			return s.BuildFailed(errcode.DatabaseErr, err.Error())
+			if sqliteErr, ok := err.(*sqlite.Error); ok {
+				if sqliteErr.Code() == sqlite3.SQLITE_BUSY {
+					err = s.FixDatabaseLockd()
+					if err != nil {
+						s.Log.Errorf("fix database lock failed: %v", err)
+						return s.BuildFailed(errcode.DatabaseErr, err.Error())
+					}
+					// re-execute the sql
+					_, err = s.DbClient.Exec(sql)
+					if err != nil {
+						s.Log.Errorf("save the connection info to db failed: %v", err)
+						return s.BuildFailed(errcode.DatabaseErr, err.Error())
+					}
+				} else {
+					s.Log.Errorf("save the connection info to db failed: %v", err)
+					return s.BuildFailed(errcode.DatabaseErr, err.Error())
+				}
+
+			} else {
+				s.Log.Errorf("save the connection info to db failed: %v", err)
+				return s.BuildFailed(errcode.DatabaseErr, err.Error())
+			}
 		}
 	} else {
 		// edit the connection
@@ -236,38 +243,38 @@ func (s *Connection) prepareSaveConnection(endpoint, secretKey, region string) (
 	return normalizedEndpoint, encrypedSk, region, nil
 }
 
-func initTable(db *sql.DB) error {
+func (s *Connection) initTable() error {
 	// init connection table
-	err := doInitTable(db, "connection", resource.CreateConnectionTableSql)
+	err := doInitTable(s.DbClient, "connection", resource.CreateConnectionTableSql)
 	if err != nil {
 		// add unique index for name column
-		_, err = db.Exec(resource.CreateConnectionTableIdxSql)
+		_, err = s.DbClient.Exec(resource.CreateConnectionTableIdxSql)
 		if err != nil {
 			return err
 		}
 	}
 
 	// init key table
-	err = doInitTable(db, "key", resource.CreateKeyTableSql)
+	err = doInitTable(s.DbClient, "key", resource.CreateKeyTableSql)
 	if err != nil {
 		return err
 	}
 
 	// init custom_bucket table
-	err = doInitTable(db, "custom_bucket", resource.CreateCustomBucketTableSql)
+	err = doInitTable(s.DbClient, "custom_bucket", resource.CreateCustomBucketTableSql)
 	if err != nil {
 		return err
 	}
 
 	// init encryption key
-	row, err := db.Query("SELECT * FROM key LIMIT 1")
+	row, err := s.DbClient.Query("SELECT * FROM key LIMIT 1")
 	if err != nil {
 		return err
 	}
 	if !row.Next() {
 		// insert AES encryption key if not exists
 		encryptionKey := randstr.String(32)
-		_, err = db.Exec(
+		_, err = s.DbClient.Exec(
 			fmt.Sprintf("insert into key(id, type, value) values('%s', '%s', '%s')",
 				xid.New().String(),
 				resource.KeyTypeEncryption,

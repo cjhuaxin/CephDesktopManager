@@ -18,6 +18,10 @@ export function DownloadObjects(arg1) {
   return window['go']['service']['Object']['DownloadObjects'](arg1);
 }
 
+export function FixDatabaseLockd() {
+  return window['go']['service']['Object']['FixDatabaseLockd']();
+}
+
 export function GetCachedS3Client(arg1) {
   return window['go']['service']['Object']['GetCachedS3Client'](arg1);
 }
@@ -32,6 +36,10 @@ export function Init() {
 
 export function InitAndCacheS3Client(arg1) {
   return window['go']['service']['Object']['InitAndCacheS3Client'](arg1);
+}
+
+export function InitDbClient() {
+  return window['go']['service']['Object']['InitDbClient']();
 }
 
 export function ListObjects(arg1) {
