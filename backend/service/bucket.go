@@ -149,11 +149,38 @@ func (s *Bucket) GetBucketInfo(req *models.GetBucketInfoReq) *models.BaseRespons
 	bucketInfo := &models.BucketInfo{}
 	ctx, cancel := s.GetTimeoutContext()
 	defer cancel()
-	headResp, err := s3Client.HeadBucket(ctx, &s3.HeadBucketInput{
+	// get bucket location
+	headResp, err := s3Client.GetBucketLocation(ctx, &s3.GetBucketLocationInput{
 		Bucket: aws.String(req.Bucket),
 	})
 	if err == nil {
-		bucketInfo.Location = headResp.ResultMetadata.Get("location").(string)
+		bucketInfo.Location = string(headResp.LocationConstraint)
+	} else {
+		s.Log.Errorf("get bucket location failed: %v", err)
+	}
+	// get bucket policy
+	policyResp, err := s3Client.GetBucketPolicy(ctx, &s3.GetBucketPolicyInput{
+		Bucket: aws.String(req.Bucket),
+	})
+	if err == nil {
+		bucketInfo.Policy = *policyResp.Policy
+		fmt.Printf("%s\n",*policyResp.Policy)
+	} else {
+		s.Log.Errorf("get bucket policy failed: %v", err)
+	}
+	// get bucket ACL
+	aclResp, err := s3Client.GetBucketAcl(ctx, &s3.GetBucketAclInput{
+		Bucket: aws.String(req.Bucket),
+	})
+	if err == nil {
+		aclList := make([]*models.Acl, 0, len(aclResp.Grants))
+		for _, grant := range aclResp.Grants {
+			aclList = append(aclList, &models.Acl{
+				Permission:  string(grant.Permission),
+				DisplayName: *grant.Grantee.DisplayName,
+			})
+		}
+		bucketInfo.Acls = aclList
 	} else {
 		s.Log.Errorf("head bucket failed: %v", err)
 	}

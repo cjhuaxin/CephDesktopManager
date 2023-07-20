@@ -12,6 +12,7 @@ import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_CONFIRM, TOPIC
 import { BucketDetail, ConnectionItem } from '../dto/BackendRes';
 import ConnectionMore from './ConnectionMore';
 import CreateBucket from './CreateBucket';
+import BucketMore from './BucketMore';
 
 const originBucketStyle = {
     fontWeight: 900,
@@ -97,40 +98,6 @@ const ConnectionList = () => {
         PubSub.publish(TOPIC_UPDATE_SEARCH_KEYWORD, "");
     }
 
-    const handleClickDeleteBucketBtn = (event: any) => {
-        event.stopPropagation();
-        let connectionId = event.currentTarget.getAttribute("data-connectionn-id")
-        let bucket = event.currentTarget.getAttribute("data-bucket")
-        let custom = event.currentTarget.getAttribute("data-custom")
-        PubSub.publish(TOPIC_CONFIRM, {
-            title: "Important",
-            content: "Confirm To Delete [" + bucket + "] Bucket ?",
-            confirmCallback: () => {
-                DeleteBucket({
-                    connectionId: connectionId,
-                    bucket: bucket,
-                    custom: JSON.parse(custom)
-                }).then(res => {
-                    if (res.err_msg == "") {
-                        //hide the object list table
-                        PubSub.publish(TOPIC_CHANGE_OBJECTS_TABLE_STATE, "none");
-                        PubSub.publish(TOPIC_ALERT, {
-                            alertType: ALERT_TYPE_SUCCESS,
-                            message: "Delete Bucket [" + bucket + "] Success"
-                        });
-                        listBuckets(connectionId);
-                    } else {
-                        PubSub.publish(TOPIC_ALERT, {
-                            alertType: ALERT_TYPE_ERROR,
-                            message: res.err_msg
-                        });
-
-                    }
-                });
-            }
-        });
-    }
-
     const subscribeRefreshConnectionsEvent = () => {
         PubSub.subscribe(TOPIC_REFRESH_CONNECTION_LIST, function () {
             queryConnectionList();
@@ -198,15 +165,7 @@ const ConnectionList = () => {
                                                         primaryTypographyProps={{ style: bucket.custom ? customBucketStyle : originBucketStyle }}
                                                         primary={bucket.bucket}
                                                     />
-                                                    <IconButton
-                                                        size="small"
-                                                        data-connectionn-id={item.id}
-                                                        data-bucket={bucket.bucket}
-                                                        data-custom={bucket.custom}
-                                                        onClick={handleClickDeleteBucketBtn}
-                                                    >
-                                                        <DeleteIcon fontSize="inherit" />
-                                                    </IconButton>
+                                                    <BucketMore connectionId={item.id} bucket={bucket.bucket} isCustom={bucket.custom} />
                                                 </ListItemButton>
                                             </ListItem>
                                         ))

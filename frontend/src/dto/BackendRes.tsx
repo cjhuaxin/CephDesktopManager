@@ -37,3 +37,12 @@ export interface UpgradeProgress {
     percentage: number;
     rate: number;
 }
+
+export interface BucketInfo {
+    location: string;
+    policy: string;
+    acls: {
+        permission:string;
+        displayName:string;
+    }[];
+}

@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type BaseResponse struct {
 	ErrCode string      `json:"err_code"`
@@ -57,5 +59,11 @@ type UpgradeProgress struct {
 
 type BucketInfo struct {
 	Location string `json:"location"`
+	Policy   string `json:"policy"`
+	Acls     []*Acl `json:"acls"`
+}
 
+type Acl struct {
+	Permission  string `json:"permission"`
+	DisplayName string `json:"displayName"`
 }

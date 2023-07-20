@@ -23,6 +23,7 @@
     "file-saver": "^2.0.5",
     "moment": "^2.29.4",
     "pretty-bytes": "^6.1.0",
+    "pretty-print-json": "^2.0.2",
     "pubsub-js": "^1.9.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
