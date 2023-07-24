@@ -6,7 +6,7 @@
 
  A simple, better and GUI friendly [ceph](https://github.com/ceph/ceph) desktop manager, compatible with Linux, windows, mac. What's more, it support all the s3 protocol object storage service, like [minio](https://github.com/minio/minio).
 
-[![Download](https://img.shields.io/github/v/release/cjhuaxin/CephDesktopManager)](https://github.com/cjhuaxin/CephDesktopManager/releases)
+[![Download](https://img.shields.io/github/downloads/cjhuaxin/CephDesktopManager/total)](https://img.shields.io/github/downloads/cjhuaxin/CephDesktopManager/total)
 [![MIT](https://img.shields.io/github/license/cjhuaxin/CephDesktopManager)](LICENSE)
 [![Twitter](https://img.shields.io/badge/Twitter-%40cjhuaxin-blue)](https://twitter.com/cjhuaxin)
 [![MacOS](https://img.shields.io/badge/-macOS-gray?style=plastic&logo=apple)](https://img.shields.io/badge/-macOS-gray?style=plastic&logo=apple)

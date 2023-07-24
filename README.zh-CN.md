@@ -6,7 +6,7 @@
 
 简单、更好、GUI友好的[ceph](https://github.com/ceph/ceph)桌面管理器，兼容Linux、windows、mac。 更重要的是，它支持所有的s3协议对象存储服务，如 [minio](https://github.com/minio/minio)
 
-[![Download](https://img.shields.io/github/v/release/cjhuaxin/CephDesktopManager)](https://github.com/cjhuaxin/CephDesktopManager/releases)
+[![Download](https://img.shields.io/github/downloads/cjhuaxin/CephDesktopManager/total)](https://img.shields.io/github/downloads/cjhuaxin/CephDesktopManager/total)
 [![MIT](https://img.shields.io/github/license/cjhuaxin/CephDesktopManager)](LICENSE)
 [![Twitter](https://img.shields.io/badge/Twitter-%40cjhuaxin-blue)](https://twitter.com/cjhuaxin)
 [![MacOS](https://img.shields.io/badge/-macOS-gray?style=plastic&logo=apple)](https://img.shields.io/badge/-macOS-gray?style=plastic&logo=apple)
