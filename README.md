@@ -60,7 +60,7 @@ If you encounter the can't open problem, please refer to [Open Mac App from an u
 - [x] List buckets[⭐️⭐️⭐️⭐️⭐️]
 - [x] Add custom bucket[⭐️⭐️⭐️⭐️⭐️]
 - [x] Delete bucket[⭐️⭐️⭐️⭐️]
-- [ ] Show bucket information[⭐️⭐️⭐️]
+- [x] Show bucket information[⭐️⭐️⭐️]
 - [ ] Bucket policy configuration[⭐️⭐️⭐️]
 - [ ] Bucket lifecycle configuration[⭐️⭐️⭐️]
 - [ ] Synchronize buckets[⭐️]
