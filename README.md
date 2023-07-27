@@ -56,21 +56,21 @@ If you encounter the can't open problem, please refer to [Open Mac App from an u
 ## Feature
 
 ### 🪣 Bucket
-- [x] Create bucket[⭐️⭐️⭐️⭐️⭐️]
-- [x] List buckets[⭐️⭐️⭐️⭐️⭐️]
-- [x] Add custom bucket[⭐️⭐️⭐️⭐️⭐️]
-- [x] Delete bucket[⭐️⭐️⭐️⭐️]
-- [x] Show bucket information[⭐️⭐️⭐️]
+- [x] [1.1.0]Create bucket[⭐️⭐️⭐️⭐️⭐️]
+- [x] [1.1.0]List buckets[⭐️⭐️⭐️⭐️⭐️]
+- [x] [1.1.0]Add custom bucket[⭐️⭐️⭐️⭐️⭐️]
+- [x] [1.1.0]Delete bucket[⭐️⭐️⭐️⭐️]
+- [x] [1.3.0]Show bucket information[⭐️⭐️⭐️]
 - [ ] Bucket policy configuration[⭐️⭐️⭐️]
 - [ ] Bucket lifecycle configuration[⭐️⭐️⭐️]
 - [ ] Synchronize buckets[⭐️]
 
 ### 🙋‍♀️ Object
-- [x] List objects[⭐️⭐️⭐️⭐️⭐️]
-- [x] Upload file[⭐️⭐️⭐️⭐️⭐️]
-- [x] Delete object[⭐️⭐️⭐️⭐️⭐️]
-- [x] Filter object with prefix[⭐️⭐️⭐️⭐️]
-- [ ] Multiple files upload[⭐️⭐️⭐️⭐️]
+- [x] [1.1.0]List objects[⭐️⭐️⭐️⭐️⭐️]
+- [x] [1.1.0]Upload file[⭐️⭐️⭐️⭐️⭐️]
+- [x] [1.1.0]Delete object[⭐️⭐️⭐️⭐️⭐️]
+- [x] [1.1.0]Filter object with prefix[⭐️⭐️⭐️⭐️]
+- [x] [1.3.1]Multiple files upload[⭐️⭐️⭐️⭐️]
 - [ ] Batch downloads[⭐️⭐️⭐️]
 - [ ] Download a floder[⭐️⭐️⭐️]
 - [ ] Upload a folder[⭐️⭐️⭐️]
@@ -86,15 +86,15 @@ If you encounter the can't open problem, please refer to [Open Mac App from an u
 - [ ] Object lifecycle configuration[⭐️]
 
 ### 🖇️ Connection
-- [x] Create Connection[⭐️⭐️⭐️⭐️⭐️]
-- [x] Edit connection[⭐️⭐️⭐️⭐️]
-- [x] Delete connection[⭐️⭐️⭐️⭐️]
-- [x] Test connection[⭐️⭐️⭐️⭐️]
+- [x] [1.1.0]Create Connection[⭐️⭐️⭐️⭐️⭐️]
+- [x] [1.1.0]Edit connection[⭐️⭐️⭐️⭐️]
+- [x] [1.1.0]Delete connection[⭐️⭐️⭐️⭐️]
+- [x] [1.1.0]Test connection[⭐️⭐️⭐️⭐️]
 - [ ] Auto re-connect[⭐️⭐️]
 - [ ] SSH support[⭐️⭐️]
 
 ### 👨🏻‍💻 App
-- [x] Upgrade feature[⭐️⭐️⭐️⭐️]
+- [x] [1.2.0]Upgrade feature[⭐️⭐️⭐️⭐️]
 - [ ] Automatically checks and downloads latest update file[⭐️⭐️]
 - [ ] Configure the download directory[⭐️⭐️]
 - [ ] Connection Configuration Sync on Cloud[⭐️]

@@ -164,7 +164,7 @@ func (s *Bucket) GetBucketInfo(req *models.GetBucketInfoReq) *models.BaseRespons
 	})
 	if err == nil {
 		bucketInfo.Policy = *policyResp.Policy
-		fmt.Printf("%s\n",*policyResp.Policy)
+		fmt.Printf("%s\n", *policyResp.Policy)
 	} else {
 		s.Log.Errorf("get bucket policy failed: %v", err)
 	}
@@ -175,10 +175,13 @@ func (s *Bucket) GetBucketInfo(req *models.GetBucketInfoReq) *models.BaseRespons
 	if err == nil {
 		aclList := make([]*models.Acl, 0, len(aclResp.Grants))
 		for _, grant := range aclResp.Grants {
-			aclList = append(aclList, &models.Acl{
-				Permission:  string(grant.Permission),
-				DisplayName: *grant.Grantee.DisplayName,
-			})
+			acl := &models.Acl{
+				Permission: string(grant.Permission),
+			}
+			if grant.Grantee != nil && grant.Grantee.DisplayName != nil {
+				acl.DisplayName = *grant.Grantee.DisplayName
+			}
+			aclList = append(aclList, acl)
 		}
 		bucketInfo.Acls = aclList
 	} else {
