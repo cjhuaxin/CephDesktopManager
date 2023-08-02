@@ -98,7 +98,6 @@ func (s *Connection) SaveS3Connection(req *models.NewConnectionReq) *models.Base
 					s.Log.Errorf("save the connection info to db failed: %v", err)
 					return s.BuildFailed(errcode.DatabaseErr, err.Error())
 				}
-
 			} else {
 				s.Log.Errorf("save the connection info to db failed: %v", err)
 				return s.BuildFailed(errcode.DatabaseErr, err.Error())
@@ -106,12 +105,34 @@ func (s *Connection) SaveS3Connection(req *models.NewConnectionReq) *models.Base
 		}
 	} else {
 		// edit the connection
-		_, err = s.DbClient.Exec(
+		sql :=
 			fmt.Sprintf("UPDATE connection SET name = '%s',endpoint = '%s',ak = '%s',sk = '%s',region = '%s',path_style = %d WHERE id = '%s'",
-				req.Name, normalizedEndpoint, req.AccessKey, encrypedSk, region, req.PathStyle, req.ID))
+				req.Name, normalizedEndpoint, req.AccessKey, encrypedSk, region, req.PathStyle, req.ID)
+		_, err = s.DbClient.Exec(sql)
 		if err != nil {
-			s.Log.Errorf("update connection[%s] info to db failed: %v", req.ID, err)
-			return s.BuildFailed(errcode.DatabaseErr, err.Error())
+			if err != nil {
+				if sqliteErr, ok := err.(*sqlite.Error); ok {
+					if sqliteErr.Code() == sqlite3.SQLITE_BUSY {
+						err = s.FixDatabaseLockd()
+						if err != nil {
+							s.Log.Errorf("fix database lock failed: %v", err)
+							return s.BuildFailed(errcode.DatabaseErr, err.Error())
+						}
+						// re-execute the sql
+						_, err = s.DbClient.Exec(sql)
+						if err != nil {
+							s.Log.Errorf("update connection[%s] info to db failed: %v", req.ID, err)
+							return s.BuildFailed(errcode.DatabaseErr, err.Error())
+						}
+					} else {
+						s.Log.Errorf("update connection[%s] info to db failed: %v", req.ID, err)
+						return s.BuildFailed(errcode.DatabaseErr, err.Error())
+					}
+				} else {
+					s.Log.Errorf("update connection[%s] info to db failed: %v", req.ID, err)
+					return s.BuildFailed(errcode.DatabaseErr, err.Error())
+				}
+			}
 		}
 		//create a new s3 client for cache
 		s3Client, err := util.CreateS3ClientInstance(normalizedEndpoint, req.AccessKey, req.SecretKey, region, req.PathStyle)
