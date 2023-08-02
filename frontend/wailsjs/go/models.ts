@@ -1,5 +1,23 @@
 export namespace models {
 	
+	export class AbortMultipartUploadReq {
+	    connectionId: string;
+	    uploadId: string;
+	    bucket: string;
+	    key: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new AbortMultipartUploadReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.connectionId = source["connectionId"];
+	        this.uploadId = source["uploadId"];
+	        this.bucket = source["bucket"];
+	        this.key = source["key"];
+	    }
+	}
 	export class AddCustomBucketReq {
 	    connectionId: string;
 	    bucket: string;
@@ -30,6 +48,58 @@ export namespace models {
 	        this.data = source["data"];
 	    }
 	}
+	export class Multipart {
+	    part: number;
+	    value: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Multipart(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.part = source["part"];
+	        this.value = source["value"];
+	    }
+	}
+	export class CompleteMultipartUploadReq {
+	    connectionId: string;
+	    uploadId: string;
+	    bucket: string;
+	    key: string;
+	    etags: Multipart[];
+	
+	    static createFrom(source: any = {}) {
+	        return new CompleteMultipartUploadReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.connectionId = source["connectionId"];
+	        this.uploadId = source["uploadId"];
+	        this.bucket = source["bucket"];
+	        this.key = source["key"];
+	        this.etags = this.convertValues(source["etags"], Multipart);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class CreateBucketReq {
 	    connectionId: string;
 	    bucket: string;
@@ -42,6 +112,22 @@ export namespace models {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.connectionId = source["connectionId"];
 	        this.bucket = source["bucket"];
+	    }
+	}
+	export class CreateMultipartUploadReq {
+	    connectionId: string;
+	    bucket: string;
+	    key: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CreateMultipartUploadReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.connectionId = source["connectionId"];
+	        this.bucket = source["bucket"];
+	        this.key = source["key"];
 	    }
 	}
 	export class DeleteBucketReq {
@@ -198,18 +284,6 @@ export namespace models {
 	        this.secretKey = source["secretKey"];
 	        this.region = source["region"];
 	        this.pathStyle = source["pathStyle"];
-	    }
-	}
-	export class PrepareForUploadingReq {
-	    connectionId: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new PrepareForUploadingReq(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.connectionId = source["connectionId"];
 	    }
 	}
 

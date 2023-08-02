@@ -3,10 +3,18 @@
 import {models} from '../models';
 import {s3} from '../models';
 import {context} from '../models';
+import {multipart} from '../models';
+import {url} from '../models';
+
+export function AbortMultipartUpload(arg1:models.AbortMultipartUploadReq):Promise<models.BaseResponse>;
 
 export function BuildFailed(arg1:string,arg2:string):Promise<models.BaseResponse>;
 
 export function BuildSucess(arg1:any):Promise<models.BaseResponse>;
+
+export function CompleteMultipartUpload(arg1:models.CompleteMultipartUploadReq):Promise<models.BaseResponse>;
+
+export function CreateMultipartUpload(arg1:models.CreateMultipartUploadReq):Promise<models.BaseResponse>;
 
 export function DeleteObjects(arg1:models.DeleteObjectsReq):Promise<models.BaseResponse>;
 
@@ -26,6 +34,8 @@ export function InitDbClient():Promise<void>;
 
 export function ListObjects(arg1:models.ListObjectsReq):Promise<models.BaseResponse>;
 
-export function PrepareForUploading(arg1:models.PrepareForUploadingReq):Promise<models.BaseResponse>;
+export function PutMultipartUpload(arg1:multipart.FileHeader,arg2:url.Values):Promise<models.BaseResponse>;
 
 export function QueryEncryptionKey():Promise<string>;
+
+export function ServiceName():Promise<string>;

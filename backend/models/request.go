@@ -28,8 +28,34 @@ type AddCustomBucketReq struct {
 	Bucket       string `json:"bucket"`
 }
 
-type PrepareForUploadingReq struct {
+type CreateMultipartUploadReq struct {
 	ConnectionId string `json:"connectionId"`
+	Bucket       string `json:"bucket"`
+	Key          string `json:"key"`
+}
+
+type PutMultipartUploadReq struct {
+	ConnectionId string      `json:"connectionId"`
+	UploadID     string      `json:"uploadId"`
+	Bucket       string      `json:"bucket"`
+	Key          string      `json:"key"`
+	PartNumber   int32       `json:"partNumber"`
+	Chunk        interface{} `json:"chunk"`
+}
+
+type CompleteMultipartUploadReq struct {
+	ConnectionId string       `json:"connectionId"`
+	UploadID     string       `json:"uploadId"`
+	Bucket       string       `json:"bucket"`
+	Key          string       `json:"key"`
+	Etags        []*Multipart `json:"etags"`
+}
+
+type AbortMultipartUploadReq struct {
+	ConnectionId string `json:"connectionId"`
+	UploadID     string `json:"uploadId"`
+	Bucket       string `json:"bucket"`
+	Key          string `json:"key"`
 }
 
 type DeleteObjectsReq struct {
@@ -67,4 +93,9 @@ type DownloadUpgradeFileReq struct {
 type GetBucketInfoReq struct {
 	ConnectionId string `json:"connectionId"`
 	Bucket       string `json:"bucket"`
+}
+
+type Multipart struct {
+	Part  int32  `json:"part"`
+	Value string `json:"value"`
 }

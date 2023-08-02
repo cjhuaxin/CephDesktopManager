@@ -2,8 +2,12 @@ package service
 
 import (
 	"context"
+	"mime/multipart"
+	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -28,6 +32,10 @@ func NewObjectService(baseService *base.Service) *Object {
 
 func (s *Object) Init() error {
 	return nil
+}
+
+func (s *Object) ServiceName() string {
+	return "Object"
 }
 
 func (s *Object) ListObjects(req *models.ListObjectsReq) *models.BaseResponse {
@@ -154,39 +162,123 @@ func (s *Object) DownloadObjects(req *models.DownloadObjectsReq) *models.BaseRes
 	return s.BuildSucess(s.Paths.DownloadDir)
 }
 
-func (s *Object) PrepareForUploading(req *models.PrepareForUploadingReq) *models.BaseResponse {
-	//query connection name for make directory
-	stmt, err := s.DbClient.Prepare("SELECT endpoint,ak,sk,region,path_style FROM connection WHERE id = ?")
+func (s *Object) CreateMultipartUpload(req *models.CreateMultipartUploadReq) *models.BaseResponse {
+	s3Client, err := s.GetCachedS3Client(req.ConnectionId)
 	if err != nil {
-		s.Log.Errorf("prepare sql statement failed: %v", err)
-		return s.BuildFailed(errcode.DatabaseErr, err.Error())
+		s.Log.Errorf("get connection[%s] failed: %v", req.ConnectionId, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
 	}
-	var endpoint, ak, sk, region string
-	var pathStyle int8
-	err = stmt.QueryRow(req.ConnectionId).Scan(&endpoint, &ak, &sk, &region, &pathStyle)
-	if err != nil {
-		s.Log.Errorf("query connection information failed: %v", err)
-		return s.BuildFailed(errcode.DatabaseErr, err.Error())
-	}
-
-	encryptionKey, err := s.QueryEncryptionKey()
-	if err != nil {
-		s.Log.Errorf("query encryption key failed: %v", err)
-		return s.BuildFailed(errcode.AesEncryptErr, err.Error())
-	}
-	rawSk, err := util.DecryptByAES(sk, encryptionKey)
-	if err != nil {
-		s.Log.Errorf("AES decrypt failed: %v", err)
-		return s.BuildFailed(errcode.AesEncryptErr, err.Error())
-	}
-
-	return s.BuildSucess(&models.ConnectionDetail{
-		Endpoint:  endpoint,
-		AccessKey: ak,
-		SecretKey: rawSk,
-		Region:    region,
-		PathStyle: pathStyle,
+	ctx, cancel := s.GetTimeoutContext()
+	defer cancel()
+	createOutput, err := s3Client.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
+		Bucket: aws.String(req.Bucket),
+		Key:    aws.String(req.Key),
 	})
+	if err != nil {
+		s.Log.Errorf("create multipart upload[%s|%s] failed: %v", req.Bucket, req.Key, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
+	}
+
+	return s.BuildSucess(&models.InitializeMultipartUploadRes{
+		UploadID: *createOutput.UploadId,
+	})
+}
+
+func (s *Object) PutMultipartUpload(fileHeader *multipart.FileHeader, params url.Values) *models.BaseResponse {
+	file, err := fileHeader.Open()
+	if err != nil {
+		s.Log.Errorf("open file[%s] failed: %v", fileHeader.Filename, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
+	}
+	connectionId := params.Get("connectionId")
+	bucket := params.Get("bucket")
+	key := params.Get("key")
+	uploadId := params.Get("uploadId")
+	partNumberStr := params.Get("partNumber")
+	partNumber, err := strconv.ParseInt(partNumberStr, 10, 64)
+	if err != nil {
+		s.Log.Errorf("parse int[%s] failed: %v", partNumberStr, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
+	}
+	s3Client, err := s.GetCachedS3Client(connectionId)
+	if err != nil {
+		s.Log.Errorf("get connection[%s] failed: %v", connectionId, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
+	}
+	out, err := s3Client.UploadPart(context.TODO(), &s3.UploadPartInput{
+		Bucket:     aws.String(bucket),
+		Key:        aws.String(key),
+		UploadId:   aws.String(uploadId),
+		PartNumber: int32(partNumber),
+		Body:       file,
+	})
+	if err != nil {
+		s.Log.Errorf("upload part [%s|%s|%d] failed: %v", bucket, key, partNumber, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
+	}
+	etag := *out.ETag
+
+	return s.BuildSucess(&models.PutMultipartUploadRes{
+		ETag:       etag[1 : len(etag)-1],
+		PartNumber: int32(partNumber),
+	})
+}
+
+func (s *Object) CompleteMultipartUpload(req *models.CompleteMultipartUploadReq) *models.BaseResponse {
+	s3Client, err := s.GetCachedS3Client(req.ConnectionId)
+	if err != nil {
+		s.Log.Errorf("get connection[%s] failed: %v", req.ConnectionId, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
+	}
+	ctx, cancel := s.GetTimeoutContext()
+	defer cancel()
+	parts := make([]types.CompletedPart, 0, len(req.Etags))
+	//sort by parts
+	sort.SliceStable(req.Etags, func(i, j int) bool {
+		return req.Etags[i].Part < req.Etags[j].Part
+	})
+	for _, part := range req.Etags {
+		parts = append(parts, types.CompletedPart{
+			ETag:       aws.String(part.Value),
+			PartNumber: part.Part,
+		})
+	}
+	_, err = s3Client.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
+		Bucket:   aws.String(req.Bucket),
+		Key:      aws.String(req.Key),
+		UploadId: aws.String(req.UploadID),
+		MultipartUpload: &types.CompletedMultipartUpload{
+			Parts: parts,
+		},
+	})
+	if err != nil {
+		s.Log.Errorf("complete multipart upload[%s|%s|%s] failed: %v", req.Bucket, req.Key, req.UploadID, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
+	}
+
+	return s.BuildSucess(nil)
+}
+
+func (s *Object) AbortMultipartUpload(req *models.AbortMultipartUploadReq) *models.BaseResponse {
+	s3Client, err := s.GetCachedS3Client(req.ConnectionId)
+	if err != nil {
+		s.Log.Errorf("get connection[%s] failed: %v", req.ConnectionId, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
+	}
+	ctx, cancel := s.GetTimeoutContext()
+	defer cancel()
+	_, err = s3Client.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
+		Bucket:   aws.String(req.Bucket),
+		Key:      aws.String(req.Key),
+		UploadId: aws.String(req.UploadID),
+	})
+
+	if err != nil {
+		s.Log.Errorf("abort multipart upload[%s|%s|%s] failed: %v", req.Bucket, req.Key, req.UploadID, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
+	}
+
+	return s.BuildSucess(nil)
 }
 
 func (s *Object) DeleteObjects(req *models.DeleteObjectsReq) *models.BaseResponse {

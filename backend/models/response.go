@@ -67,3 +67,12 @@ type Acl struct {
 	Permission  string `json:"permission"`
 	DisplayName string `json:"displayName"`
 }
+
+type InitializeMultipartUploadRes struct {
+	UploadID string `json:"uploadId"`
+}
+
+type PutMultipartUploadRes struct {
+	ETag       string `json:"eTag"`
+	PartNumber int32  `json:"partNumber"`
+}

@@ -40,6 +40,10 @@ func (s *Connection) Init() error {
 	return nil
 }
 
+func (s *Connection) ServiceName() string {
+	return "Connection"
+}
+
 func (s *Connection) TestS3Connection(req *models.NewConnectionReq) *models.BaseResponse {
 	normalizedEndpoint, err := util.NormalizeUrls(req.Endpoint)
 	if err != nil {

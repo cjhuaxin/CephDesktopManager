@@ -25,6 +25,10 @@ func (s *Bucket) Init() error {
 	return nil
 }
 
+func (s *Bucket) ServiceName() string {
+	return "Bucket"
+}
+
 func (s *Bucket) ListBuckets(req *models.ListBucketsReq) *models.BaseResponse {
 	s3Client := s.S3ClientMap[req.ConnectionId]
 	if s3Client == nil {

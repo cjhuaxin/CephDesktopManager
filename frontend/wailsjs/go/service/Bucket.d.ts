@@ -31,3 +31,5 @@ export function InitDbClient():Promise<void>;
 export function ListBuckets(arg1:models.ListBucketsReq):Promise<models.BaseResponse>;
 
 export function QueryEncryptionKey():Promise<string>;
+
+export function ServiceName():Promise<string>;

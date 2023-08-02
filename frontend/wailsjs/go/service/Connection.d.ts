@@ -30,4 +30,6 @@ export function QueryEncryptionKey():Promise<string>;
 
 export function SaveS3Connection(arg1:models.NewConnectionReq):Promise<models.BaseResponse>;
 
+export function ServiceName():Promise<string>;
+
 export function TestS3Connection(arg1:models.NewConnectionReq):Promise<models.BaseResponse>;

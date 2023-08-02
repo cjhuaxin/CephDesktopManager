@@ -42,7 +42,7 @@ export interface BucketInfo {
     location: string;
     policy: string;
     acls: {
-        permission:string;
-        displayName:string;
+        permission: string;
+        displayName: string;
     }[];
 }

@@ -54,6 +54,10 @@ export function SaveS3Connection(arg1) {
   return window['go']['service']['Connection']['SaveS3Connection'](arg1);
 }
 
+export function ServiceName() {
+  return window['go']['service']['Connection']['ServiceName']();
+}
+
 export function TestS3Connection(arg1) {
   return window['go']['service']['Connection']['TestS3Connection'](arg1);
 }

@@ -1,4 +1,3 @@
-import { AbortMultipartUploadCommand, CompleteMultipartUploadCommand, CreateMultipartUploadCommand, S3Client, UploadPartCommand } from "@aws-sdk/client-s3";
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import { LoadingButton } from "@mui/lab";
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, LinearProgress, Typography } from "@mui/material";
@@ -6,9 +5,11 @@ import { DataGrid, GridColDef, GridValueFormatterParams, useGridApiRef } from "@
 import prettyBytes from 'pretty-bytes';
 import React from "react";
 import sparkMD5 from 'spark-md5';
-import { PrepareForUploading } from "../../wailsjs/go/service/Object";
-import { ALERT_TYPE_ERROR, TOPIC_ALERT, TOPIC_LIST_OBJECTS, TOPIC_LOADING } from "../constants/Pubsub";
+import { AbortMultipartUpload, CompleteMultipartUpload, CreateMultipartUpload, PutMultipartUpload } from "../../wailsjs/go/service/Object";
+import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_LIST_OBJECTS, TOPIC_LOADING } from "../constants/Pubsub";
 import { ConnectionDetail } from "../dto/BackendRes";
+import axios from 'axios';
+import { models } from '../../wailsjs/go/models';
 
 const columns: GridColDef[] = [
     {
@@ -67,41 +68,144 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
         }
         setUplaoding(true);
         setWholeProgress(0.1);
-        // get connection details from backend
-        let prepareRes = await PrepareForUploading({
-            connectionId: connectionId,
-        });
-        if (prepareRes.err_msg == "") {
-            let data: ConnectionDetail = prepareRes.data;
-            const s3Client = new S3Client({
-                endpoint: data.endpoint,
-                forcePathStyle: data.pathStyle == 1,
-                credentials: {
-                    accessKeyId: data.accessKey,
-                    secretAccessKey: data.secretKey
-                },
-                region: data.region,
-                // requestHandler: new FetchHttpHandler({
-                //     requestTimeout: 3000,
-                // }),
-            });
-            let index = 1;
-            for (const [key, value] of preparedUploadFileMap.current) {
-                await doUpload(s3Client, key, value);
-                apiRef.current.scrollToIndexes({
-                    rowIndex: index++,
-                    colIndex: 0
+        let index = 1;
+        let uploadId;
+        for (const [key, value] of preparedUploadFileMap.current) {
+            const objKey = prefix + value.name;
+            try {
+                // Multipart uploads require a minimum size of 5 MB per part.
+                const numberOfParts = Math.ceil(value.size / (1024 * 1024 * 5));
+                let createRes = await CreateMultipartUpload({
+                    connectionId: connectionId,
+                    bucket: bucket,
+                    key: objKey,
                 })
-            }
-        } else {
-            // hide loading
-            PubSub.publish(TOPIC_LOADING, false);
-            PubSub.publish(TOPIC_ALERT, {
-                alertType: ALERT_TYPE_ERROR,
-                message: prepareRes.err_msg,
-            });
-        }
 
+                if (createRes.err_msg != "") {
+                    PubSub.publish(TOPIC_ALERT, {
+                        alertType: ALERT_TYPE_ERROR,
+                        message: createRes.err_msg,
+                    });
+                    handleClickClose();
+                    return
+                }
+                uploadId = createRes.data.uploadId;
+
+                const uploadPromises = [];
+
+                //each part size,5M
+                let chunk = 5 * 1024 * 1024
+                let start = 0;
+                // Upload each part.
+                let eTags = new Array<models.Multipart>();
+                for (let i = 1; i <= numberOfParts; i++) {
+                    let end = start + chunk;
+                    if (value.size < end) {
+                        end = value.size
+                    }
+                    let chunkSize = end - start
+                    let progress = (chunkSize / totalFileSize.current) * 100
+                    setWholeProgressBuffer(prefix => prefix + progress)
+                    var data = new FormData();
+                    data.append('connectionId', connectionId);
+                    data.append('uploadId', uploadId);
+                    data.append('bucket', bucket);
+                    data.append('key', objKey);
+                    data.append('partNumber', i + "");
+                    data.append('fileName', value.name);
+                    data.append('chunk', value.slice(start, end));
+                    uploadPromises.push(
+                        axios.put("http://localhost:56789/custom/upload", data, {
+                            onUploadProgress: ({ progress, rate }) => {
+                                console.log(`Upload [${(progress! * 100).toFixed(2)}%]: ${(rate! / 1024).toFixed(2)}KB/s`)
+                            }
+                        })
+                            .then((res) => {
+                                console.log("upload res", res);
+                                if (res.data.err_msg != "") {
+                                    PubSub.publish(TOPIC_ALERT, {
+                                        alertType: ALERT_TYPE_ERROR,
+                                        message: res.data.err_msg,
+                                    })
+                                    throw new Error(res.data.err_msg)
+                                } else {
+                                    // update row progress
+                                    setRows((prevRows) => {
+                                        return prevRows.map((row, index) =>
+                                            row.id === key ? { ...row, progress: row.progress + (chunkSize / value.size) } : row,
+                                        );
+                                    });
+                                    setWholeProgress(prefix => prefix + progress)
+                                    console.log("put result", res.data);
+                                    eTags.push({
+                                        part: res.data.data.partNumber,
+                                        value: res.data.data.eTag
+                                    })
+                                }
+                            }).catch(err => {
+                                console.log("upload error", err);
+                            })
+                    );
+                    start = end;
+                }
+
+                await Promise.all(uploadPromises);
+                if (eTags.length == 0) {
+                    PubSub.publish(TOPIC_ALERT, {
+                        alertType: ALERT_TYPE_ERROR,
+                        message: "etags are empty",
+                    });
+                    setUplaoding(false);
+
+                    return
+                }
+                let req: models.CompleteMultipartUploadReq = {
+                    connectionId: connectionId,
+                    uploadId: uploadId,
+                    bucket: bucket,
+                    key: objKey,
+                    etags: eTags,
+                    convertValues(a, classs, asMap) {
+                        return asMap ? new classs(a) : this.convertValues(a, classs);
+                    }
+                }
+                let completeRes = await CompleteMultipartUpload(req)
+                if (completeRes.err_msg != "") {
+                    PubSub.publish(TOPIC_ALERT, {
+                        alertType: ALERT_TYPE_ERROR,
+                        message: completeRes.err_msg,
+                    });
+                }
+            } catch (err: any) {
+                PubSub.publish(TOPIC_ALERT, {
+                    alertType: ALERT_TYPE_ERROR,
+                    message: err.message,
+                });
+                if (uploadId) {
+                    let abortRes = await AbortMultipartUpload({
+                        connectionId: connectionId,
+                        uploadId: uploadId,
+                        bucket: bucket,
+                        key: objKey,
+                    })
+                    console.log("uploadId failed", abortRes);
+                }
+                setUplaoding(false)
+                return
+            }
+
+            apiRef.current.scrollToIndexes({
+                rowIndex: index++,
+                colIndex: 0
+            })
+        }
+        // alert success
+        PubSub.publish(TOPIC_ALERT, {
+            alertType: ALERT_TYPE_SUCCESS,
+            message: "Upload Success",
+        });
+
+        // refresh object list
         PubSub.publish(TOPIC_LIST_OBJECTS, {
             connectionId: connectionId,
             bucket: bucket,
@@ -110,91 +214,8 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
             searchKeyword: searchKeyword,
         });
 
+        // close upload dialog
         handleClickClose();
-    }
-
-    const doUpload = async (s3Client: S3Client, id: string, file: File) => {
-        let uploadId;
-        let key = prefix + file.name;
-        try {
-            const multipartUpload = await s3Client.send(
-                new CreateMultipartUploadCommand({
-                    Bucket: bucket,
-                    Key: key,
-                })
-            );
-
-            uploadId = multipartUpload.UploadId;
-
-            const uploadPromises = [];
-            // Multipart uploads require a minimum size of 5 MB per part.
-            const partCount = Math.ceil(file.size / (1024 * 1024 * 5));
-            //each part size,5M
-            let chunk = 5 * 1024 * 1024
-            let start = 0;
-            // Upload each part.
-            for (let i = 0; i < partCount; i++) {
-                let end = start + chunk;
-                if (file.size < end) {
-                    end = file.size
-                }
-                let chunkSize = end - start
-                let progress = (chunkSize / totalFileSize.current) * 100
-                setWholeProgressBuffer(prefix => prefix + progress)
-                uploadPromises.push(
-                    s3Client
-                        .send(
-                            new UploadPartCommand({
-                                Bucket: bucket,
-                                Key: key,
-                                UploadId: uploadId,
-                                Body: file.slice(start, end),
-                                PartNumber: i + 1,
-                            })
-                        )
-                        .then((d) => {
-                            // update row progress
-                            setRows((prevRows) => {
-                                return prevRows.map((row, index) =>
-                                    row.id === id ? { ...row, progress: row.progress + (chunkSize / file.size) } : row,
-                                );
-                            });
-                            setWholeProgress(prefix => prefix + progress)
-                            return d;
-                        })
-                );
-                start = end;
-            }
-
-            const uploadResults = await Promise.all(uploadPromises);
-            await s3Client.send(
-                new CompleteMultipartUploadCommand({
-                    Bucket: bucket,
-                    Key: key,
-                    UploadId: uploadId,
-                    MultipartUpload: {
-                        Parts: uploadResults.map(({ ETag }, i) => ({
-                            ETag,
-                            PartNumber: i + 1,
-                        })),
-                    },
-                })
-            );
-        } catch (err: any) {
-            PubSub.publish(TOPIC_ALERT, {
-                alertType: ALERT_TYPE_ERROR,
-                message: err.message,
-            });
-            if (uploadId) {
-                const abortCommand = new AbortMultipartUploadCommand({
-                    Bucket: bucket,
-                    Key: key,
-                    UploadId: uploadId,
-                });
-
-                await s3Client.send(abortCommand);
-            }
-        }
     }
 
     const handleOnDrop = (event: any) => {
@@ -244,6 +265,9 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
         setWholeProgress(0);
         setWholeProgressBuffer(0);
         setRows([]);
+
+        uploadInputRef.current!.value = "";
+        totalFileSize.current = 0;
 
         preparedUploadFileMap.current.clear();
     }

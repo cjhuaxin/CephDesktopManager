@@ -319,14 +319,11 @@ export default function ObjectListTable() {
             PubSub.publish(TOPIC_UPDATE_SEARCH_KEYWORD, props.searchKeyword);
         }
 
-        console.log("props", props);
         prefix.current = "";
-        console.log("breadcrumbs", breadcrumbs);
         let stopIndex = breadcrumbs.findIndex(b => b.path === props.folder);
         if (stopIndex == -1) {
             stopIndex = breadcrumbs.length;
         }
-        console.log("stopIndex", stopIndex);
         //assemble the query prefix
         breadcrumbs.forEach((breadcrumb, i) => {
             if (i <= stopIndex) {
@@ -344,7 +341,6 @@ export default function ObjectListTable() {
         if (prefix.current != "" && !prefix.current.endsWith(DELIMITER)) {
             prefix.current += DELIMITER
         }
-        console.log("prefix", prefix);
 
         listObjects("", prefix.current, function (res) {
             if (res.data) {

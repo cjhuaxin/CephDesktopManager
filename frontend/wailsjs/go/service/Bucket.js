@@ -57,3 +57,7 @@ export function ListBuckets(arg1) {
 export function QueryEncryptionKey() {
   return window['go']['service']['Bucket']['QueryEncryptionKey']();
 }
+
+export function ServiceName() {
+  return window['go']['service']['Bucket']['ServiceName']();
+}

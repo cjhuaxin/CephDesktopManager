@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"github.com/cavaliergopher/grab/v3"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 
 	"github.com/cjhuaxin/CephDesktopManager/backend/errcode"
@@ -40,6 +42,7 @@ import (
 
 type Bind interface {
 	Init() error
+	ServiceName() string
 }
 
 // App struct
@@ -138,6 +141,43 @@ func (a *App) onStart(ctx context.Context, binds ...Bind) error {
 			return err
 		}
 	}
+
+	var objectService Bind
+	for _, service := range binds {
+		if service.ServiceName() == "Object" {
+			objectService = service
+		}
+	}
+
+	return initGin(objectService.(*service.Object))
+}
+
+func initGin(objectService *service.Object) error {
+	r := gin.New()
+	r.PUT("/custom/upload", func(c *gin.Context) {
+		fileHeader, err := c.FormFile("chunk")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, models.BaseResponse{
+				ErrCode: errcode.CommonErr,
+				ErrMsg:  err.Error(),
+			})
+			return
+		}
+		res := objectService.PutMultipartUpload(fileHeader, c.Request.Form)
+
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.JSON(http.StatusOK, res)
+	})
+	r.Use(cors.Default())
+	srv := &http.Server{
+		Addr:    ":56789",
+		Handler: r,
+	}
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fmt.Printf("listen: %s\n", err)
+		}
+	}()
 
 	return nil
 }
