@@ -73,8 +73,6 @@ export default function UpgradeDialog() {
                 let currentVersionArray = currentVersion.current.split(".");
                 let latestVersionArray = body.tag_name.substring(1).split(".");
                 for (let i = 0; i < currentVersionArray.length; i++) {
-                    console.log("Number(currentVersionArray[i]", Number(currentVersionArray[i]));
-                    console.log("Number(latestVersionArray[i]", Number(latestVersionArray[i]));
                     // From left to right, compare the version number sizes in order.
                     if (Number(currentVersionArray[i]) < Number(latestVersionArray[i])) {
                         hasNewVersion.current = true;

@@ -128,6 +128,7 @@ func allBinds(app *App, extraBinds []Bind) []interface{} {
 
 func (a *App) onStart(ctx context.Context, binds ...Bind) error {
 	a.Ctx = ctx
+	a.Service.Ctx = ctx
 	//init directory for app
 	err := a.initDirectoryStructure()
 	if err != nil {

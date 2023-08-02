@@ -6,10 +6,11 @@ import prettyBytes from 'pretty-bytes';
 import React from "react";
 import sparkMD5 from 'spark-md5';
 import { AbortMultipartUpload, CompleteMultipartUpload, CreateMultipartUpload, PutMultipartUpload } from "../../wailsjs/go/service/Object";
-import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_LIST_OBJECTS, TOPIC_LOADING } from "../constants/Pubsub";
-import { ConnectionDetail } from "../dto/BackendRes";
+import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_LIST_OBJECTS, TOPIC_LOADING, UPLOAD_PROGRESS } from "../constants/Pubsub";
 import axios from 'axios';
 import { models } from '../../wailsjs/go/models';
+import { EventsOff, EventsOn } from '../../wailsjs/runtime/runtime';
+import { UploadDetail } from '../dto/BackendRes';
 
 const columns: GridColDef[] = [
     {
@@ -55,6 +56,7 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
     const uploadInputRef = React.useRef<HTMLInputElement>(null);
     const preparedUploadFileMap = React.useRef(new Map<string, File>());
     const totalFileSize = React.useRef(0);
+    const currentFileSize = React.useRef(0);
     const apiRef = useGridApiRef();
 
 
@@ -70,8 +72,24 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
         setWholeProgress(0.1);
         let index = 1;
         let uploadId;
+        // upload progress
+        EventsOn(UPLOAD_PROGRESS, (result: UploadDetail) => {
+            let currentProgress = result.partSize / currentFileSize.current
+            let totalProgress = result.partSize / totalFileSize.current * 100
+            console.log("currentProgress", currentProgress);
+            console.log("totalProgress", totalProgress);
+            console.log(result);
+            // update row progress
+            setRows((prevRows) => {
+                return prevRows.map((row, index) =>
+                    row.id === result.fileNameKey ? { ...row, progress: row.progress + currentProgress } : row,
+                );
+            });
+            setWholeProgress(prefix => prefix + totalProgress);
+        });
         for (const [key, value] of preparedUploadFileMap.current) {
             const objKey = prefix + value.name;
+            currentFileSize.current = value.size;
             try {
                 // Multipart uploads require a minimum size of 5 MB per part.
                 const numberOfParts = Math.ceil(value.size / (1024 * 1024 * 5));
@@ -90,8 +108,6 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
                     return
                 }
                 uploadId = createRes.data.uploadId;
-
-                const uploadPromises = [];
 
                 //each part size,5M
                 let chunk = 5 * 1024 * 1024
@@ -114,42 +130,26 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
                     data.append('partNumber', i + "");
                     data.append('fileName', value.name);
                     data.append('chunk', value.slice(start, end));
-                    uploadPromises.push(
-                        axios.put("http://localhost:56789/custom/upload", data, {
-                            onUploadProgress: ({ progress, rate }) => {
-                                console.log(`Upload [${(progress! * 100).toFixed(2)}%]: ${(rate! / 1024).toFixed(2)}KB/s`)
+                    await axios.put("http://localhost:56789/custom/upload", data)
+                        .then((res) => {
+                            if (res.data.err_msg != "") {
+                                PubSub.publish(TOPIC_ALERT, {
+                                    alertType: ALERT_TYPE_ERROR,
+                                    message: res.data.err_msg,
+                                })
+                                throw new Error(res.data.err_msg)
+                            } else {
+                                eTags.push({
+                                    part: res.data.data.partNumber,
+                                    value: res.data.data.eTag
+                                })
                             }
+                        }).catch(err => {
+                            console.log("upload error", err);
                         })
-                            .then((res) => {
-                                console.log("upload res", res);
-                                if (res.data.err_msg != "") {
-                                    PubSub.publish(TOPIC_ALERT, {
-                                        alertType: ALERT_TYPE_ERROR,
-                                        message: res.data.err_msg,
-                                    })
-                                    throw new Error(res.data.err_msg)
-                                } else {
-                                    // update row progress
-                                    setRows((prevRows) => {
-                                        return prevRows.map((row, index) =>
-                                            row.id === key ? { ...row, progress: row.progress + (chunkSize / value.size) } : row,
-                                        );
-                                    });
-                                    setWholeProgress(prefix => prefix + progress)
-                                    console.log("put result", res.data);
-                                    eTags.push({
-                                        part: res.data.data.partNumber,
-                                        value: res.data.data.eTag
-                                    })
-                                }
-                            }).catch(err => {
-                                console.log("upload error", err);
-                            })
-                    );
                     start = end;
                 }
 
-                await Promise.all(uploadPromises);
                 if (eTags.length == 0) {
                     PubSub.publish(TOPIC_ALERT, {
                         alertType: ALERT_TYPE_ERROR,
@@ -188,7 +188,6 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
                         bucket: bucket,
                         key: objKey,
                     })
-                    console.log("uploadId failed", abortRes);
                 }
                 setUplaoding(false)
                 return
@@ -270,6 +269,7 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
         totalFileSize.current = 0;
 
         preparedUploadFileMap.current.clear();
+        EventsOff(UPLOAD_PROGRESS);
     }
 
     return (

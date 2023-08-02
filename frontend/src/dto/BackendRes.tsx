@@ -46,3 +46,8 @@ export interface BucketInfo {
         displayName: string;
     }[];
 }
+
+export interface UploadDetail {
+    fileNameKey: string;
+    partSize: number;
+}

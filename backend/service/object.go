@@ -2,6 +2,9 @@ package service
 
 import (
 	"context"
+	"crypto/md5"
+	"fmt"
+	"io"
 	"mime/multipart"
 	"net/url"
 	"os"
@@ -16,9 +19,19 @@ import (
 	"github.com/cjhuaxin/CephDesktopManager/backend/base"
 	"github.com/cjhuaxin/CephDesktopManager/backend/errcode"
 	"github.com/cjhuaxin/CephDesktopManager/backend/models"
+	"github.com/cjhuaxin/CephDesktopManager/backend/resource"
 	"github.com/cjhuaxin/CephDesktopManager/backend/util"
 	"github.com/rs/xid"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
+
+type progressReader struct {
+	io.ReadSeeker
+	fileNameKey string
+	sent        int
+	atEOF       int8
+	ctx         context.Context
+}
 
 type Object struct {
 	*base.Service
@@ -185,9 +198,10 @@ func (s *Object) CreateMultipartUpload(req *models.CreateMultipartUploadReq) *mo
 }
 
 func (s *Object) PutMultipartUpload(fileHeader *multipart.FileHeader, params url.Values) *models.BaseResponse {
+	fileName := params.Get("fileName")
 	file, err := fileHeader.Open()
 	if err != nil {
-		s.Log.Errorf("open file[%s] failed: %v", fileHeader.Filename, err)
+		s.Log.Errorf("open file[%s] failed: %v", fileName, err)
 		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
 	}
 	connectionId := params.Get("connectionId")
@@ -205,12 +219,18 @@ func (s *Object) PutMultipartUpload(fileHeader *multipart.FileHeader, params url
 		s.Log.Errorf("get connection[%s] failed: %v", connectionId, err)
 		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
 	}
+
+	pr := &progressReader{
+		ReadSeeker:  file,
+		fileNameKey: fmt.Sprintf("%x", md5.Sum([]byte(fileName))),
+		ctx:         s.Ctx,
+	}
 	out, err := s3Client.UploadPart(context.TODO(), &s3.UploadPartInput{
 		Bucket:     aws.String(bucket),
 		Key:        aws.String(key),
 		UploadId:   aws.String(uploadId),
 		PartNumber: int32(partNumber),
-		Body:       file,
+		Body:       pr,
 	})
 	if err != nil {
 		s.Log.Errorf("upload part [%s|%s|%d] failed: %v", bucket, key, partNumber, err)
@@ -322,4 +342,26 @@ func (s *Object) makeTargetDirectory(connectionName, bucket, key string) (string
 	}
 
 	return file, nil
+}
+
+func (pr *progressReader) Read(p []byte) (int, error) {
+	n, err := pr.ReadSeeker.Read(p)
+	if err != nil && err == io.EOF {
+		pr.atEOF++
+	}
+	if pr.atEOF > 0 {
+		pr.sent += n
+		pr.report(n)
+	}
+
+	return n, err
+}
+
+func (pr *progressReader) report(partSize int) {
+	if pr.sent > 0 {
+		runtime.EventsEmit(pr.ctx, resource.UPLOAD_PROGRESS, &models.UploadDetail{
+			FileNameKey: pr.fileNameKey,
+			PartSize:    partSize,
+		})
+	}
 }

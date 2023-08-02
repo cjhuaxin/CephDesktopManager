@@ -18,3 +18,4 @@ export const ALERT_TYPE_ERROR = "error"
 //backend Event name
 export const CHECK_UPGRADE = "CHECK_UPGRADE"
 export const UPGRADE_PROGRESS = "UPGRADE_PROGRESS"
+export const UPLOAD_PROGRESS = "UPLOAD_PROGRESS"

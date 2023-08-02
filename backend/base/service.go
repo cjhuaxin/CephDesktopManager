@@ -20,6 +20,7 @@ type Service struct {
 	Log         *zap.SugaredLogger
 	S3ClientMap map[string]*s3.Client
 	DbClient    *sql.DB
+	Ctx         context.Context
 }
 
 type Paths struct {

@@ -76,3 +76,8 @@ type PutMultipartUploadRes struct {
 	ETag       string `json:"eTag"`
 	PartNumber int32  `json:"partNumber"`
 }
+
+type UploadDetail struct {
+	FileNameKey string `json:"fileNameKey"`
+	PartSize    int    `json:"partSize"`
+}
