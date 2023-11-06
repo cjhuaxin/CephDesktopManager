@@ -41,7 +41,9 @@ export default function SearchInput({ connectionId, bucket, prefix }: any) {
                 display: 'flex',
                 alignItems: 'center',
                 width: 400,
-                marginBottom: 1,
+                float: 'right',
+                mb: 1,
+                mr:1
             }}
         >
             <InputBase

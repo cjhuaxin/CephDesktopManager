@@ -8,12 +8,16 @@ import (
 	"mime/multipart"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
+	osRuntime "runtime"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/cjhuaxin/CephDesktopManager/backend/base"
@@ -98,6 +102,7 @@ func (s *Object) ListObjects(req *models.ListObjectsReq) *models.BaseResponse {
 		data = append(data, &models.ObjectItem{
 			ID:           xid.New().String(),
 			Key:          trimedPrefix,
+			RealKey:      originPrefix,
 			CommonPrefix: true,
 		})
 	}
@@ -147,32 +152,110 @@ func (s *Object) DownloadObjects(req *models.DownloadObjectsReq) *models.BaseRes
 		s.Log.Errorf("query connection name failed: %v", err)
 		return s.BuildFailed(errcode.DatabaseErr, err.Error())
 	}
+	downloadChan := make(chan string)
+	downlaodKeys := make([]string, 0)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		for file := range downloadChan {
+			downlaodKeys = append(downlaodKeys, file)
+		}
+		wg.Done()
+	}()
 
-	for _, key := range req.Keys {
+	err = s.obtainDownloadFiles(connectionName, req.Bucket, req.Keys, s3Client, downloadChan)
+	if err != nil {
+		return s.BuildFailed(errcode.FileErr, err.Error())
+	}
+	close(downloadChan)
+	wg.Wait()
+	//start download files
+	err = s.download(connectionName, req.Bucket, downlaodKeys, downloader)
+	if err != nil {
+		return s.BuildFailed(errcode.FileErr, err.Error())
+	}
+
+	s.openDownloadFolder(connectionName, req.Bucket)
+
+	return s.BuildSucess(s.Paths.DownloadDir)
+}
+
+func (s *Object) download(connectionName, bucket string, downlaodKeys []string, downloader *manager.Downloader) error {
+	for _, key := range downlaodKeys {
 		// Create the directories in the path
-		file, err := s.makeTargetDirectory(connectionName, req.Bucket, key)
+		file, err := s.makeTargetDirectory(connectionName, bucket, key)
 		if err != nil {
-			return s.BuildFailed(errcode.FileErr, err.Error())
+			s.Log.Errorf("make target directory[%s] failed: %v", key, err)
+			return err
 		}
 		// Set up the local file
 		fd, err := os.Create(file)
 		if err != nil {
 			s.Log.Errorf("create file[%s] failed: %v", file, err)
-			return s.BuildFailed(errcode.FileErr, err.Error())
+			return err
 		}
 		defer fd.Close()
 		input := &s3.GetObjectInput{
-			Bucket: aws.String(req.Bucket),
+			Bucket: aws.String(bucket),
 			Key:    aws.String(key),
 		}
 		_, err = downloader.Download(context.TODO(), fd, input)
 		if err != nil {
 			s.Log.Errorf("download file[%s] failed: %v", file, err)
-			return s.BuildFailed(errcode.FileErr, err.Error())
+			return err
 		}
 	}
 
-	return s.BuildSucess(s.Paths.DownloadDir)
+	return nil
+}
+
+func (s *Object) obtainDownloadFiles(connectionName, bucket string, keys []string, s3Client *s3.Client, downloadChan chan string) error {
+	fileArray := make([]string, 0)
+	folderArray := make([]string, 0)
+	for _, key := range keys {
+		if strings.HasSuffix(key, resource.Slant) {
+			folderArray = append(folderArray, key)
+		} else {
+			fileArray = append(fileArray, key)
+		}
+	}
+
+	for _, key := range fileArray {
+		downloadChan <- key
+	}
+
+	//if the folder array is not empty, download all the files under the folders
+	subFolders := make([]string, 0)
+	for _, folder := range folderArray {
+		// Each folder supports up to 1000 files
+		input := &s3.ListObjectsV2Input{
+			Bucket: aws.String(bucket),
+			Prefix: &folder,
+		}
+		output, err := s3Client.ListObjectsV2(context.TODO(), input)
+		if err != nil {
+			s.Log.Errorf("list objects[bucket=%s] failed: %v", bucket, err)
+			return err
+		}
+
+		// add objects
+		for _, o := range output.Contents {
+			downloadChan <- *o.Key
+		}
+		// add subfolders
+		for _, c := range output.CommonPrefixes {
+			subFolders = append(subFolders, *c.Prefix)
+		}
+	}
+	if len(subFolders) > 0 {
+		err := s.obtainDownloadFiles(connectionName, bucket, subFolders, s3Client, downloadChan)
+		if err != nil {
+			s.Log.Errorf("The recursive call failed: %v", err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *Object) CreateMultipartUpload(req *models.CreateMultipartUploadReq) *models.BaseResponse {
@@ -343,6 +426,30 @@ func (s *Object) makeTargetDirectory(connectionName, bucket, key string) (string
 
 	return file, nil
 }
+
+func (s *Object) openDownloadFolder(connectionName, bucket string) {
+	downloadDir := filepath.Join(s.Paths.DownloadDir, connectionName, bucket) + string(os.PathSeparator)
+
+	cmd := "open"
+	if osRuntime.GOOS == "windows" {
+		cmd = "explorer"
+	}
+
+	err := exec.Command(cmd, downloadDir).Start()
+	if err != nil {
+		s.Log.Warnf("open download folder failed: %v", err)
+	}
+}
+
+// func (s *Object) downloadFolder(key string) (string, error) {
+// 	file := filepath.Join(s.Paths.DownloadDir, connectionName, bucket, key)
+// 	if err := os.MkdirAll(filepath.Dir(file), 0755); err != nil {
+// 		s.Log.Errorf("make all dir failed: %s", filepath.Dir(file))
+// 		return "", err
+// 	}
+
+// 	return file, nil
+// }
 
 func (pr *progressReader) Read(p []byte) (int, error) {
 	n, err := pr.ReadSeeker.Read(p)

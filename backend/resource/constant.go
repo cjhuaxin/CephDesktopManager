@@ -27,3 +27,19 @@ const (
 	UPGRADE_PROGRESS = "UPGRADE_PROGRESS"
 	UPLOAD_PROGRESS  = "UPLOAD_PROGRESS"
 )
+
+const (
+	LineSplit    = "\n"
+	Comma        = ","
+	Colon        = ":"
+	Asterisk     = "*"
+	VerticalLine = "|"
+	Eq           = "="
+	Tilde        = "~"
+	Semicolon    = ";"
+	Blank        = " "
+	Dash         = "_"
+	Dot          = "."
+	Slant        = "/"
+	Quote        = "\""
+)

@@ -1,15 +1,16 @@
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
 import { LoadingButton } from "@mui/lab";
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, LinearProgress, Typography } from "@mui/material";
 import { DataGrid, GridColDef, GridValueFormatterParams, useGridApiRef } from "@mui/x-data-grid";
+import axios from 'axios';
 import prettyBytes from 'pretty-bytes';
 import React from "react";
 import sparkMD5 from 'spark-md5';
-import { AbortMultipartUpload, CompleteMultipartUpload, CreateMultipartUpload, PutMultipartUpload } from "../../wailsjs/go/service/Object";
-import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_LIST_OBJECTS, TOPIC_LOADING, UPLOAD_PROGRESS } from "../constants/Pubsub";
-import axios from 'axios';
 import { models } from '../../wailsjs/go/models';
+import { AbortMultipartUpload, CompleteMultipartUpload, CreateMultipartUpload } from "../../wailsjs/go/service/Object";
 import { EventsOff, EventsOn } from '../../wailsjs/runtime/runtime';
+import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_LIST_OBJECTS, UPLOAD_PROGRESS } from "../constants/Pubsub";
 import { UploadDetail } from '../dto/BackendRes';
 
 const columns: GridColDef[] = [
@@ -277,12 +278,12 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
             <Button
                 sx={{
                     float: "right",
-                    mt: -0.5,
                     mr: 1
                 }}
                 variant="contained"
                 size="small"
                 onClick={handleOpenUploadDialogClick}
+                endIcon={<FileUploadIcon/>}
             >Upload
             </Button>
             <input

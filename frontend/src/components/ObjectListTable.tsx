@@ -5,7 +5,7 @@ import PreviewIcon from '@mui/icons-material/Preview';
 import { AlertColor, Box, Breadcrumbs, Grid, Link, Pagination, PaginationItem, Typography } from '@mui/material';
 import { LinkProps } from '@mui/material/Link';
 import { styled } from '@mui/material/styles';
-import { DataGrid, GridActionsCellItem, GridColDef, GridValueFormatterParams } from '@mui/x-data-grid';
+import { DataGrid, GridActionsCellItem, GridCallbackDetails, GridColDef, GridRowParams, GridRowSelectionModel, GridValueFormatterParams, MuiEvent, useGridApiRef } from '@mui/x-data-grid';
 import moment from 'moment';
 import prettyBytes from 'pretty-bytes';
 import * as React from 'react';
@@ -16,6 +16,7 @@ import { ObjectItem } from '../dto/BackendRes';
 import { AlertEventBody, ListObjectsEventBody, ListObjectsItem } from '../dto/Frontend';
 import SearchInput from './SearchInput';
 import UploadObject from './UploadObject';
+import ObjectBatch from './ObjectBatch';
 
 const alertMsg = (alertType: AlertColor, msg: string) => {
     let alertBody: AlertEventBody = {
@@ -61,6 +62,7 @@ export default function ObjectListTable() {
     const [loading, setLoading] = React.useState(true);
     const [rowData, setRowData] = React.useState(Array<ListObjectsItem>);
     const [breadcrumbs, setBreadcrumbs] = React.useState(Array<LinkRouterProps>);
+    const [rowsSelected, setRowsSelected] = React.useState<Array<string>>([]);
 
     const connectionId = React.useRef("");
     const bucket = React.useRef("");
@@ -74,6 +76,7 @@ export default function ObjectListTable() {
         disablePrevious: true,
         disableNext: true,
     });
+    const apiRef = useGridApiRef();
 
     const FolderLink = React.memo(function FolderLink(props: ItemLinkProps) {
         const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -140,30 +143,26 @@ export default function ObjectListTable() {
             type: 'actions',
             flex: 1,
             getActions: (params) => {
-                if (!params.row.commonPrefix) {
-                    return ([
-                        <GridActionsCellItem
-                            icon={<FileDownloadIcon />}
-                            label="Download"
-                            onClick={downloadObject(params.row)}
-                        />,
-                        <GridActionsCellItem
-                            icon={<DeleteIcon />}
-                            label="Delete"
-                            onClick={deleteObject(params.row)}
-                            showInMenu
-                        />,
-                        <GridActionsCellItem
-                            disabled
-                            icon={<PreviewIcon />}
-                            label="Preview"
-                            onClick={previewObject(params.row)}
-                            showInMenu
-                        />,
-                    ]);
-                }
-
-                return ([]);
+                return ([
+                    <GridActionsCellItem
+                        icon={<FileDownloadIcon />}
+                        label="Download"
+                        onClick={downloadObject(params.row)}
+                    />,
+                    <GridActionsCellItem
+                        icon={<DeleteIcon />}
+                        label="Delete"
+                        onClick={deleteObject(params.row)}
+                        showInMenu
+                    />,
+                    <GridActionsCellItem
+                        disabled
+                        icon={<PreviewIcon />}
+                        label="Preview"
+                        onClick={previewObject(params.row)}
+                        showInMenu
+                    />,
+                ]);
             },
         },
     ];
@@ -381,6 +380,15 @@ export default function ObjectListTable() {
         });
     };
 
+    const handleRowSelectionModelChange = (rowSelectionModel: GridRowSelectionModel) => {
+        let selectedRealKey = new Array<string>();
+        rowSelectionModel.forEach(id => {
+            let row = apiRef.current.getRow(id)
+            selectedRealKey.push(row.realKey)
+        })
+        setRowsSelected([...selectedRealKey])
+    }
+
 
     // paginater handlers
     const handleFirstClick = () => {
@@ -507,12 +515,16 @@ export default function ObjectListTable() {
                 <Grid item xs={4}>
                     <UploadObject bucket={bucket.current} connectionId={connectionId.current} prefix={prefix.current} searchKeyword={searchKeyword.current} />
                 </Grid>
+                <Grid item xs={4}>
+                    <ObjectBatch rowsSelected={rowsSelected} connectionId={connectionId.current} bucket={bucket.current} />
+                </Grid>
                 <Grid item xs={8}>
                     <SearchInput connectionId={connectionId.current} bucket={bucket.current} prefix={prefix.current} />
                 </Grid>
             </Grid>
-            <div style={{ height: '80vh', width: '100%' }}>
+            <div style={{ height: '74vh', width: '100%' }}>
                 <DataGrid
+                    apiRef={apiRef}
                     pageSizeOptions={[PAGE_SIZE]}
                     paginationMode="server"
                     rowHeight={35}
@@ -520,6 +532,9 @@ export default function ObjectListTable() {
                     columns={columns}
                     rows={rowData}
                     hideFooter={true}
+                    checkboxSelection
+                    disableRowSelectionOnClick
+                    onRowSelectionModelChange={handleRowSelectionModelChange}
                 />
             </div>
 
