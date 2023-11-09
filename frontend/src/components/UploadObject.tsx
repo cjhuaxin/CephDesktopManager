@@ -103,9 +103,6 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
         EventsOn(UPLOAD_PROGRESS, (result: UploadDetail) => {
             let currentProgress = result.partSize / currentFileSize.current
             let totalProgress = result.partSize / totalFileSize.current * 100
-            console.log("currentProgress", currentProgress);
-            console.log("totalProgress", totalProgress);
-            console.log(result);
             // update row progress
             setRows((prevRows) => {
                 return prevRows.map((row, index) =>
@@ -230,12 +227,11 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
             alertType: ALERT_TYPE_SUCCESS,
             message: "Upload Success",
         });
-
         // refresh object list
         PubSub.publish(TOPIC_LIST_OBJECTS, {
             connectionId: connectionId,
             bucket: bucket,
-            prefix: prefix,
+            prefix: [prefix],
             updateBreadcrumbs: false,
             searchKeyword: searchKeyword,
         });
@@ -332,28 +328,6 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
         })
         setOpenCreateFolderDialog(false);
         initCreateFolderInput();
-        // CreateFolder({
-        //     connectionId: connectionId,
-        //     bucket: bucket,
-        //     path: newFolder,
-        // }).then((res) => {
-        //     if (res.err_msg == "") {
-        //         PubSub.publish(TOPIC_ALERT, {
-        //             alertType: ALERT_TYPE_SUCCESS,
-        //             message: "Create new folder success"
-        //         });
-        //         setOpenCreateFolderDialog(false);
-        //         initCreateFolderInput();
-        //         // PubSub.publish(TOPIC_REFRESH_BUCKET_LIST, {
-        //         //     connectionId
-        //         // });
-        //     } else {
-        //         PubSub.publish(TOPIC_ALERT, {
-        //             alertType: ALERT_TYPE_ERROR,
-        //             message: res.err_msg
-        //         });
-        //     }
-        // });
     };
 
     return (

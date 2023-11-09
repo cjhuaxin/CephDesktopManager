@@ -250,9 +250,6 @@ export default function ObjectListTable() {
         setLoading(true);
         //append search keyword to list object
         prefix += searchKeyword.current;
-        if (prefix.startsWith(DELIMITER)) {
-            prefix = prefix.substring(1, prefix.length)
-        }
         let req = {
             connectionId: connectionId.current,
             bucket: bucket.current,
@@ -321,7 +318,6 @@ export default function ObjectListTable() {
     };
 
     const handleFolderClick = (props: ItemLinkProps) => {
-        console.log("prps", props)
         if (props.searchKeyword != searchKeyword.current) {
             searchKeyword.current = props.searchKeyword
             // update search keyword
@@ -353,8 +349,6 @@ export default function ObjectListTable() {
                 // append new folder
                 prefix.current += newPath
             }
-            console.log("new folder breadcrumbs", breadcrumbs)
-            console.log("new folder prefix", prefix.current)
         } else {
             singleFolder = props.folder[0]
             // For cases where there are multiple paths in the prefix string--start
@@ -389,6 +383,10 @@ export default function ObjectListTable() {
             }
         }
 
+        if (prefix.current.startsWith(DELIMITER)) {
+            prefix.current = prefix.current.substring(1, prefix.current.length)
+        }
+
         listObjects("", prefix.current, function (res) {
             if (res.data) {
                 setRowData(res.data.objects);
@@ -419,7 +417,6 @@ export default function ObjectListTable() {
                             // Click on the breadcrumbs that exists, cutoff the sub path
                             breadcrumbs.current = breadcrumbs.current.slice(0, stopIndex + 1);
                         }
-                        console.log("no updateBreadcrumbs", breadcrumbs);
                     }
 
                     // if need to update breadcrumbs,clear the search keyword

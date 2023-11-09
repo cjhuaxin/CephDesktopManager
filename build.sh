@@ -17,7 +17,7 @@ mv build/bin/Ceph-Desktop-Manager.exe build/release/$version/Ceph-Desktop-Manage
 wails build -clean -platform windows/amd64 -trimpath -webview2 Embed
 mv build/bin/Ceph-Desktop-Manager.exe build/release/$version/Ceph-Desktop-Manager-amd64-$version.exe
 
-build mac universal
+# build mac universal
 wails build -clean -platform darwin/universal -trimpath
 cd build/bin
 pwd
