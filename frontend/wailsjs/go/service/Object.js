@@ -18,6 +18,10 @@ export function CompleteMultipartUpload(arg1) {
   return window['go']['service']['Object']['CompleteMultipartUpload'](arg1);
 }
 
+export function CreateFolder(arg1) {
+  return window['go']['service']['Object']['CreateFolder'](arg1);
+}
+
 export function CreateMultipartUpload(arg1) {
   return window['go']['service']['Object']['CreateMultipartUpload'](arg1);
 }

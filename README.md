@@ -74,6 +74,7 @@ If you encounter the can't open problem, please refer to [Open Mac App from an u
 - [x] [1.3.2]Uploading progress[⭐️⭐️⭐️]
 - [x] [1.4.0]Batch downloads[⭐️⭐️⭐️]
 - [x] [1.4.0]Download a floder[⭐️⭐️⭐️]
+- [x] [1.4.1]Create a empty floder[⭐️⭐️⭐️]
 - [ ] Upload a folder[⭐️⭐️⭐️]
 - [ ] Downloading progress[⭐️⭐️⭐️]
 - [ ] Object icons beautification[⭐️⭐️⭐️]

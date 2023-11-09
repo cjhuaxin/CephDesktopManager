@@ -180,6 +180,30 @@ func (s *Object) DownloadObjects(req *models.DownloadObjectsReq) *models.BaseRes
 	return s.BuildSucess(s.Paths.DownloadDir)
 }
 
+func (s *Object) CreateFolder(req *models.CreateFolderReq) *models.BaseResponse {
+	s3Client, err := s.GetCachedS3Client(req.ConnectionId)
+	if err != nil {
+		s.Log.Errorf("get connection[%s] failed: %v", req.ConnectionId, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
+	}
+	ctx, cancel := s.GetTimeoutContext()
+	defer cancel()
+	path := req.Path
+	if !strings.HasSuffix(path, resource.Slant) {
+		path = path + resource.Slant
+	}
+	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Key:    &path,
+		Bucket: &req.Bucket,
+	})
+	if err != nil {
+		s.Log.Errorf("create empty folder[%s|%s] failed: %v", req.Bucket, path, err)
+		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
+	}
+
+	return s.BuildSucess(nil)
+}
+
 func (s *Object) download(connectionName, bucket string, downlaodKeys []string, downloader *manager.Downloader) error {
 	for _, key := range downlaodKeys {
 		// Create the directories in the path

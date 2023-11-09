@@ -1,14 +1,15 @@
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { LoadingButton } from "@mui/lab";
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, LinearProgress, Typography } from "@mui/material";
+import { Box, Button, ButtonGroup, ClickAwayListener, Dialog, DialogActions, DialogContent, DialogTitle, Grow, LinearProgress, MenuItem, MenuList, Paper, Popper, TextField, Typography } from "@mui/material";
 import { DataGrid, GridColDef, GridValueFormatterParams, useGridApiRef } from "@mui/x-data-grid";
 import axios from 'axios';
 import prettyBytes from 'pretty-bytes';
 import React from "react";
 import sparkMD5 from 'spark-md5';
 import { models } from '../../wailsjs/go/models';
-import { AbortMultipartUpload, CompleteMultipartUpload, CreateMultipartUpload } from "../../wailsjs/go/service/Object";
+import { AbortMultipartUpload, CompleteMultipartUpload, CreateFolder, CreateMultipartUpload } from "../../wailsjs/go/service/Object";
 import { EventsOff, EventsOn } from '../../wailsjs/runtime/runtime';
 import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_LIST_OBJECTS, UPLOAD_PROGRESS } from "../constants/Pubsub";
 import { UploadDetail } from '../dto/BackendRes';
@@ -53,8 +54,13 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
     const [wholeProgressBuffer, setWholeProgressBuffer] = React.useState(0);
     const [uplaoding, setUplaoding] = React.useState(false);
     const [openUploadDialog, setOpenUploadDialog] = React.useState(false);
+    const [openMenu, setOpenMenu] = React.useState(false);
+    const [openCreateFolderDialog, setOpenCreateFolderDialog] = React.useState(false);
+    const [newFolder, setNewFolder] = React.useState("");
+    const [newFolderErrText, setNewFolderErrText] = React.useState("");
 
     const uploadInputRef = React.useRef<HTMLInputElement>(null);
+    const anchorRef = React.useRef<HTMLDivElement>(null);
     const preparedUploadFileMap = React.useRef(new Map<string, File>());
     const totalFileSize = React.useRef(0);
     const currentFileSize = React.useRef(0);
@@ -64,6 +70,26 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
     const handleOpenUploadDialogClick = () => {
         setOpenUploadDialog(true);
     }
+
+    const handleToggleMenu = () => {
+        setOpenMenu((prevOpen) => !prevOpen);
+    };
+
+    const handleCloseMenu = (event: Event) => {
+        if (
+            anchorRef.current &&
+            anchorRef.current.contains(event.target as HTMLElement)
+        ) {
+            return;
+        }
+
+        setOpenMenu(false);
+    };
+
+    const handleCreateFolderClick = (event: React.MouseEvent<HTMLLIElement, MouseEvent>) => {
+        setOpenMenu(false);
+        setOpenCreateFolderDialog(true);
+    };
 
     const handleUpload = async (event: any) => {
         if (preparedUploadFileMap.current.size == 0) {
@@ -273,19 +299,135 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
         EventsOff(UPLOAD_PROGRESS);
     }
 
+    const initCreateFolderInput = () => {
+        setNewFolder("");
+        setNewFolderErrText("");
+    }
+    const handleCloseCreateFolderDialog = (event: any) => {
+        event.stopPropagation();
+        setOpenCreateFolderDialog(false);
+        initCreateFolderInput();
+    };
+
+    const handleSearchKeywordKeyPress = (event: any) => {
+        if (event.keyCode == 13) {
+            handleCreateFolder(event);
+        }
+    }
+
+    const handleCreateFolder = (event: any) => {
+        event.stopPropagation();
+        if (!newFolder) {
+            setNewFolderErrText("new folder is required");
+            return;
+        }
+
+        PubSub.publish(TOPIC_LIST_OBJECTS, {
+            connectionId: connectionId,
+            bucket: bucket,
+            prefix: newFolder.split("/"),
+            searchKeyword: "",
+            updateBreadcrumbs: true,
+            newFolder: true
+        })
+        setOpenCreateFolderDialog(false);
+        initCreateFolderInput();
+        // CreateFolder({
+        //     connectionId: connectionId,
+        //     bucket: bucket,
+        //     path: newFolder,
+        // }).then((res) => {
+        //     if (res.err_msg == "") {
+        //         PubSub.publish(TOPIC_ALERT, {
+        //             alertType: ALERT_TYPE_SUCCESS,
+        //             message: "Create new folder success"
+        //         });
+        //         setOpenCreateFolderDialog(false);
+        //         initCreateFolderInput();
+        //         // PubSub.publish(TOPIC_REFRESH_BUCKET_LIST, {
+        //         //     connectionId
+        //         // });
+        //     } else {
+        //         PubSub.publish(TOPIC_ALERT, {
+        //             alertType: ALERT_TYPE_ERROR,
+        //             message: res.err_msg
+        //         });
+        //     }
+        // });
+    };
+
     return (
         <Box>
-            <Button
-                sx={{
-                    float: "right",
-                    mr: 1
-                }}
-                variant="contained"
-                size="small"
-                onClick={handleOpenUploadDialogClick}
-                endIcon={<FileUploadIcon/>}
-            >Upload
-            </Button>
+            <Box sx={{
+                float: "right",
+                mr: 1
+            }}>
+                <ButtonGroup variant="contained" ref={anchorRef} aria-label="split button" sx={{
+                    mb: 1,
+                    mt: 1
+                }}>
+                    <Button
+                        size="small"
+                        onClick={handleOpenUploadDialogClick}
+                        endIcon={<FileUploadIcon />}
+                    >Upload
+                    </Button>
+                    <Button
+                        size="small"
+                        aria-controls={openMenu ? 'split-button-menu' : undefined}
+                        aria-expanded={openMenu ? 'true' : undefined}
+                        aria-haspopup="menu"
+                        onClick={handleToggleMenu}
+                    >
+                        <ArrowDropDownIcon fontSize="small" />
+                    </Button>
+                </ButtonGroup>
+                <Popper
+                    sx={{
+                        zIndex: 1,
+                    }}
+                    open={openMenu}
+                    anchorEl={anchorRef.current}
+                    role={undefined}
+                    transition
+                    disablePortal
+                    placement='bottom-start'
+                >
+                    {({ TransitionProps, placement }) => (
+                        <Grow
+                            {...TransitionProps}
+                            style={{
+                                transformOrigin:
+                                    placement === 'bottom' ? '' : 'left bottom',
+                            }}
+                        >
+                            <Paper sx={
+                                {
+                                    boxShadow: "4px 4px 4px rgba(0, 0, 0, 0.25)",
+                                    maxHeight: 35
+                                }
+                            }>
+                                <ClickAwayListener onClickAway={handleCloseMenu}>
+                                    <MenuList
+                                        id="split-button-menu"
+                                    >
+                                        <MenuItem
+                                            sx={{
+                                                fontSize: 'small',
+                                                mt: -0.75
+                                            }}
+                                            key="createFolder"
+                                            onClick={(event) => handleCreateFolderClick(event)}
+                                        >
+                                            Create Folder
+                                        </MenuItem>
+                                    </MenuList>
+                                </ClickAwayListener>
+                            </Paper>
+                        </Grow>
+                    )}
+                </Popper>
+            </Box >
             <input
                 ref={uploadInputRef}
                 type="file"
@@ -369,6 +511,32 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
                         onClick={handleClickClose}
                     >Cancel
                     </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog
+                open={openCreateFolderDialog}
+            >
+                <DialogTitle>Create Folder</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        id="path"
+                        label="Path"
+                        fullWidth
+                        required
+                        variant="standard"
+                        value={newFolder}
+                        error={!!newFolderErrText}
+                        helperText={newFolderErrText}
+                        onChange={e => setNewFolder(e.target.value)}
+                        onKeyUp={handleSearchKeywordKeyPress}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button variant="contained" onClick={handleCreateFolder}>Create</Button>
+                    <Button onClick={handleCloseCreateFolderDialog}>Cancel</Button>
                 </DialogActions>
             </Dialog>
         </Box >

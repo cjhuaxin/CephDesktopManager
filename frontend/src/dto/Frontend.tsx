@@ -20,9 +20,10 @@ export type ConnectionDetailEventBody = {
 export type ListObjectsEventBody = {
     connectionId: string;
     bucket: string;
-    prefix: string;
+    prefix: string[];
     searchKeyword: string;
     updateBreadcrumbs: boolean;
+    newFolder: boolean;
 }
 
 export type ListObjectsItem = {

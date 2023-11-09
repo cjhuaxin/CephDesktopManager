@@ -1,5 +1,6 @@
 import { Box, Button, ButtonGroup, ClickAwayListener, Grow, MenuItem, MenuList, Paper, Popper } from "@mui/material";
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import DownloadIcon from '@mui/icons-material/Download';
 import React from "react";
 import { models } from "../../wailsjs/go/models";
 import { DownloadObjects } from "../../wailsjs/go/service/Object";
@@ -56,23 +57,27 @@ export default function ObjectBatch({ rowsSelected, connectionId, bucket }: any)
     };
 
     return (
-        <Box sx={{
-        }}>
+        <Box>
             <ButtonGroup variant="contained" ref={anchorRef} aria-label="split button" sx={{
                 mb: 1,
                 mt: 1
             }}>
-                <Button disabled={rowsSelected.length == 0} onClick={handleClickDownload}>Download</Button>
+                <Button
+                    disabled={rowsSelected.length == 0}
+                    onClick={handleClickDownload}
+                    size="small"
+                >Download
+                    <DownloadIcon fontSize="small" />
+                </Button>
                 <Button
                     disabled={rowsSelected.length == 0}
                     size="small"
                     aria-controls={open ? 'split-button-menu' : undefined}
                     aria-expanded={open ? 'true' : undefined}
-                    aria-label="select merge strategy"
                     aria-haspopup="menu"
                     onClick={handleToggle}
                 >
-                    <ArrowDropDownIcon />
+                    <ArrowDropDownIcon fontSize="small" />
                 </Button>
             </ButtonGroup>
             <Popper
@@ -84,20 +89,33 @@ export default function ObjectBatch({ rowsSelected, connectionId, bucket }: any)
                 role={undefined}
                 transition
                 disablePortal
+                placement='bottom-start'
             >
                 {({ TransitionProps, placement }) => (
                     <Grow
                         {...TransitionProps}
                         style={{
                             transformOrigin:
-                                placement === 'bottom' ? 'left top' : 'left bottom',
+                                placement === 'bottom' ? '' : 'left bottom',
                         }}
                     >
-                        <Paper>
+                        <Paper sx={
+                            {
+                                boxShadow: "4px 4px 4px rgba(0, 0, 0, 0.25)",
+                                maxHeight: 35
+                            }
+                        }>
                             <ClickAwayListener onClickAway={handleClose}>
-                                <MenuList id="split-button-menu" autoFocusItem>
+                                <MenuList
+                                    id="split-button-menu"
+                                >
                                     <MenuItem
+                                        sx={{
+                                            fontSize: 'small',
+                                            mt: -0.75
+                                        }}
                                         key="delete"
+                                        disabled
                                         onClick={(event) => handleMenuItemClick(event)}
                                     >
                                         Delete

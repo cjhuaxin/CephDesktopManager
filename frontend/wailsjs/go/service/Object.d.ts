@@ -14,6 +14,8 @@ export function BuildSucess(arg1:any):Promise<models.BaseResponse>;
 
 export function CompleteMultipartUpload(arg1:models.CompleteMultipartUploadReq):Promise<models.BaseResponse>;
 
+export function CreateFolder(arg1:models.CreateFolderReq):Promise<models.BaseResponse>;
+
 export function CreateMultipartUpload(arg1:models.CreateMultipartUploadReq):Promise<models.BaseResponse>;
 
 export function DeleteObjects(arg1:models.DeleteObjectsReq):Promise<models.BaseResponse>;

@@ -134,6 +134,13 @@ export default function BucketMore({ connectionId, bucket, isCustom }: any) {
             >
                 <DialogContent dividers={true} >
                     <Typography variant="caption" display="block" gutterBottom>
+                        Bucket: <Typography
+                            variant="caption"
+                        >
+                            {bucket}
+                        </Typography>
+                    </Typography>
+                    <Typography variant="caption" display="block" gutterBottom>
                         Location: <Typography
                             variant="caption"
                         >

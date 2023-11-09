@@ -95,6 +95,12 @@ type GetBucketInfoReq struct {
 	Bucket       string `json:"bucket"`
 }
 
+type CreateFolderReq struct {
+	ConnectionId string `json:"connectionId"`
+	Bucket       string `json:"bucket"`
+	Path         string `json:"path"`
+}
+
 type Multipart struct {
 	Part  int32  `json:"part"`
 	Value string `json:"value"`

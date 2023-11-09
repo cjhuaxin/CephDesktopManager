@@ -33,10 +33,11 @@ export default function ObjectListTable() {
     }
 
     interface ItemLinkProps {
-        folder: string;
+        folder: string[];
         children: string;
         searchKeyword: string;
         updateBreadcrumbs: boolean;
+        newFolder: boolean;
     }
 
     interface PageInfo {
@@ -61,12 +62,12 @@ export default function ObjectListTable() {
     const [display, setDisplay] = React.useState("none");
     const [loading, setLoading] = React.useState(true);
     const [rowData, setRowData] = React.useState(Array<ListObjectsItem>);
-    const [breadcrumbs, setBreadcrumbs] = React.useState(Array<LinkRouterProps>);
     const [rowsSelected, setRowsSelected] = React.useState<Array<string>>([]);
 
     const connectionId = React.useRef("");
     const bucket = React.useRef("");
     const prefix = React.useRef("");
+    const breadcrumbs = React.useRef<Array<LinkRouterProps>>([]);
     const searchKeyword = React.useRef("");
     const pageInfo = React.useRef<PageInfo>({
         continueToken: "",
@@ -109,7 +110,7 @@ export default function ObjectListTable() {
                 //return the link
                 if (params.row.commonPrefix) {
                     return (
-                        <FolderLink folder={params.value.substring(0, params.value.length - 1)} updateBreadcrumbs={true} searchKeyword={""}>
+                        <FolderLink folder={[params.value.substring(0, params.value.length - 1)]} updateBreadcrumbs={true} newFolder={false} searchKeyword={""}>
                             {params.value}
                         </FolderLink>
                     );
@@ -201,9 +202,10 @@ export default function ObjectListTable() {
                         if (res.err_msg == "") {
                             alertMsg(ALERT_TYPE_SUCCESS, "Delete object[" + row.key + "] success");
                             handleFolderClick({
-                                folder: prefix.current,
+                                folder: [prefix.current],
                                 children: prefix.current,
                                 updateBreadcrumbs: false,
+                                newFolder: false,
                                 searchKeyword: searchKeyword.current,
                             })
                         } else {
@@ -232,8 +234,9 @@ export default function ObjectListTable() {
                 //handle folder click event
                 handleFolderClick({
                     folder: data.prefix,
-                    children: data.prefix,
+                    children: "",
                     updateBreadcrumbs: data.updateBreadcrumbs,
+                    newFolder: data.newFolder,
                     searchKeyword: data.searchKeyword,
                 })
             } else {
@@ -247,14 +250,19 @@ export default function ObjectListTable() {
         setLoading(true);
         //append search keyword to list object
         prefix += searchKeyword.current;
-        ListObjects({
+        if (prefix.startsWith(DELIMITER)) {
+            prefix = prefix.substring(1, prefix.length)
+        }
+        let req = {
             connectionId: connectionId.current,
             bucket: bucket.current,
             continueToken: continueToken,
             prefix: prefix,
             delimiter: DELIMITER,
             pageSize: PAGE_SIZE,
-        }).then((res: models.BaseResponse) => {
+        }
+        console.log("req", req)
+        ListObjects(req).then((res: models.BaseResponse) => {
             setLoading(false);
             if (res.err_msg == "") {
                 successFn(res);
@@ -274,7 +282,7 @@ export default function ObjectListTable() {
         let current = pageInfo.current;
         current.disableFirst = true;
         current.disablePrevious = true;
-        setBreadcrumbs([]);
+        breadcrumbs.current = []
 
         listObjects("", "", function (res) {
             if (res.data) {
@@ -296,9 +304,10 @@ export default function ObjectListTable() {
         if (path) {
             //the path under bucket
             let props: ItemLinkProps = {
-                folder: path,
+                folder: [path],
                 children: path,
                 updateBreadcrumbs: true,
+                newFolder: false,
                 searchKeyword: "",
             }
             handleFolderClick(props);
@@ -312,6 +321,7 @@ export default function ObjectListTable() {
     };
 
     const handleFolderClick = (props: ItemLinkProps) => {
+        console.log("prps", props)
         if (props.searchKeyword != searchKeyword.current) {
             searchKeyword.current = props.searchKeyword
             // update search keyword
@@ -319,44 +329,99 @@ export default function ObjectListTable() {
         }
 
         prefix.current = "";
-        let stopIndex = breadcrumbs.findIndex(b => b.path === props.folder);
-        if (stopIndex == -1) {
-            stopIndex = breadcrumbs.length;
-        }
-        //assemble the query prefix
-        breadcrumbs.forEach((breadcrumb, i) => {
-            if (i <= stopIndex) {
-                prefix.current += breadcrumb.path;
-                if (!prefix.current.endsWith(DELIMITER)) {
-                    prefix.current += DELIMITER
-                }
+        let singleFolder = "";
+        let stopIndex = 0;
+        if (props.newFolder) {
+            //for creating new folder logic
+            let newPath = props.folder.join(DELIMITER)
+            //fix the path
+            if (!newPath.endsWith(DELIMITER)) {
+                newPath += DELIMITER
             }
-        });
 
-        // Click on the breadcrumbs that don't exist, just append it to the prefix
-        if (stopIndex == breadcrumbs.length) {
-            prefix.current += props.folder;
-        }
-        if (prefix.current != "" && !prefix.current.endsWith(DELIMITER)) {
-            prefix.current += DELIMITER
+            if (newPath.startsWith(DELIMITER)) {
+                // the new folder is start with root path(/)
+                prefix.current = newPath
+            } else {
+                // assemble the current prefix
+                breadcrumbs.current.forEach((breadcrumb) => {
+                    prefix.current += breadcrumb.path;
+                    if (!prefix.current.endsWith(DELIMITER)) {
+                        prefix.current += DELIMITER
+                    }
+                });
+                // append new folder
+                prefix.current += newPath
+            }
+            console.log("new folder breadcrumbs", breadcrumbs)
+            console.log("new folder prefix", prefix.current)
+        } else {
+            singleFolder = props.folder[0]
+            // For cases where there are multiple paths in the prefix string--start
+            if (singleFolder.endsWith(DELIMITER)) {
+                singleFolder = singleFolder.substring(0, singleFolder.length - 1)
+            }
+            let singleFolderArr = singleFolder.split(DELIMITER)
+            singleFolder = singleFolderArr[singleFolderArr.length - 1]
+            // --end
+            stopIndex = breadcrumbs.current.findIndex(b => {
+                return b.path === singleFolder || (b.path + DELIMITER) === singleFolder
+            });
+            if (stopIndex == -1) {
+                stopIndex = breadcrumbs.current.length;
+            }
+            //assemble the query prefix
+            breadcrumbs.current.forEach((breadcrumb, i) => {
+                if (i <= stopIndex) {
+                    prefix.current += breadcrumb.path;
+                    if (!prefix.current.endsWith(DELIMITER)) {
+                        prefix.current += DELIMITER
+                    }
+                }
+            });
+
+            // Click on the breadcrumbs that don't exist, just append it to the prefix
+            if (stopIndex == breadcrumbs.current.length) {
+                prefix.current += singleFolder;
+            }
+            if (prefix.current != "" && !prefix.current.endsWith(DELIMITER)) {
+                prefix.current += DELIMITER
+            }
         }
 
         listObjects("", prefix.current, function (res) {
             if (res.data) {
                 setRowData(res.data.objects);
-                let currentPath = props.folder
-                let newBreadCrumb: LinkRouterProps = {
-                    path: currentPath,
-                    index: breadcrumbs.length + 1,
-                }
+                //update Breadcrumbs
                 if (props.updateBreadcrumbs) {
-                    // Click on the breadcrumbs that don't exist, just add it to breadcrumbs list
-                    if (stopIndex == breadcrumbs.length) {
-                        setBreadcrumbs(prev => [...prev, newBreadCrumb]);
+                    // for new folder logic
+                    if (props.newFolder) {
+                        let newBreadCrumbs = Array<LinkRouterProps>();
+                        prefix.current.split(DELIMITER).forEach((folder, i) => {
+                            if (folder != "") {
+                                newBreadCrumbs.push({
+                                    path: folder,
+                                    index: i + 1
+                                })
+                            }
+                        });
+                        breadcrumbs.current = newBreadCrumbs
                     } else {
-                        // Click on the breadcrumbs that exists, cutoff the sub path
-                        setBreadcrumbs(prev => prev.slice(0, stopIndex + 1));
+                        let currentPath = singleFolder
+                        let newBreadCrumb: LinkRouterProps = {
+                            path: currentPath,
+                            index: breadcrumbs.current.length + 1,
+                        }
+                        // Click on the breadcrumbs that don't exist, just add it to breadcrumbs list
+                        if (stopIndex == breadcrumbs.current.length) {
+                            breadcrumbs.current.push(newBreadCrumb);
+                        } else {
+                            // Click on the breadcrumbs that exists, cutoff the sub path
+                            breadcrumbs.current = breadcrumbs.current.slice(0, stopIndex + 1);
+                        }
+                        console.log("no updateBreadcrumbs", breadcrumbs);
                     }
+
                     // if need to update breadcrumbs,clear the search keyword
                     searchKeyword.current = "";
                 }
@@ -378,6 +443,7 @@ export default function ObjectListTable() {
         }, function (res) {
             alertMsg(ALERT_TYPE_ERROR, res.err_msg);
         });
+
     };
 
     const handleRowSelectionModelChange = (rowSelectionModel: GridRowSelectionModel) => {
@@ -488,8 +554,8 @@ export default function ObjectListTable() {
                         >
                             {bucket.current}
                         </LinkRouter>
-                        {breadcrumbs.map((value, index) => {
-                            const last = index === breadcrumbs.length - 1;
+                        {breadcrumbs.current.map((value, index) => {
+                            const last = index === breadcrumbs.current.length - 1;
                             return last ? (
                                 <Typography
                                     color="text.primary"

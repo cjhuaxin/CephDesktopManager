@@ -114,6 +114,22 @@ export namespace models {
 	        this.bucket = source["bucket"];
 	    }
 	}
+	export class CreateFolderReq {
+	    connectionId: string;
+	    bucket: string;
+	    path: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CreateFolderReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.connectionId = source["connectionId"];
+	        this.bucket = source["bucket"];
+	        this.path = source["path"];
+	    }
+	}
 	export class CreateMultipartUploadReq {
 	    connectionId: string;
 	    bucket: string;

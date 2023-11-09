@@ -12,7 +12,7 @@ export default function SearchInput({ connectionId, bucket, prefix }: any) {
         PubSub.publish(TOPIC_LIST_OBJECTS, {
             connectionId: connectionId,
             bucket: bucket,
-            prefix: prefix,
+            prefix: [prefix],
             updateBreadcrumbs: false,
             searchKeyword: searchKeywordRef.current!.value,
         });
@@ -43,7 +43,7 @@ export default function SearchInput({ connectionId, bucket, prefix }: any) {
                 width: 400,
                 float: 'right',
                 mb: 1,
-                mr:1
+                mr: 1
             }}
         >
             <InputBase
