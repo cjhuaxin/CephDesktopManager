@@ -6,7 +6,9 @@
 
 简单、更好、GUI友好的[ceph](https://github.com/ceph/ceph)桌面管理器，兼容Linux、windows、mac。 更重要的是，它支持所有的s3协议对象存储服务，如 [minio](https://github.com/minio/minio)
 
-[![Download](https://img.shields.io/github/downloads/cjhuaxin/CephDesktopManager/total)](https://img.shields.io/github/downloads/cjhuaxin/CephDesktopManager/total)
+[![Download](https://img.shields.io/github/downloads/cjhuaxin/CephDesktopManager/total)](https://github.com/cjhuaxin/CephDesktopManager/releases)
+[![Release](https://img.shields.io/github/v/release/cjhuaxin/CephDesktopManager)](https://github.com/cjhuaxin/CephDesktopManager/releases/latest)
+[![GoVersion](https://img.shields.io/github/go-mod/go-version/cjhuaxin/CephDesktopManager)](https://github.com/cjhuaxin/CephDesktopManager/tree/main/backend)
 [![MIT](https://img.shields.io/github/license/cjhuaxin/CephDesktopManager)](LICENSE)
 [![Twitter](https://img.shields.io/badge/Twitter-%40cjhuaxin-blue)](https://twitter.com/cjhuaxin)
 [![MacOS](https://img.shields.io/badge/-macOS-gray?style=plastic&logo=apple)](https://img.shields.io/badge/-macOS-gray?style=plastic&logo=apple)
@@ -72,7 +74,7 @@ Ceph Desktop Manager是开源的，安全的应用程序，但由于苹果的严
 - [x] [1.3.1]支持多文件上传[⭐️⭐️⭐️⭐️]
 - [x] [1.3.2]上传进度条[⭐️⭐️⭐️]
 - [x] [1.4.0]支持批量下载[⭐️⭐️⭐️]
-- [x] [1.4.0]下载一个文件夹[⭐️⭐️⭐️]
+- [x] [1.4.0]下载文件夹[⭐️⭐️⭐️]
 - [x] [1.4.2]创建一个空文件夹[⭐️⭐️⭐️]
 - [ ] 上传一个文件夹[⭐️⭐️⭐️]
 - [ ] 下载进度条[⭐️⭐️⭐️]
