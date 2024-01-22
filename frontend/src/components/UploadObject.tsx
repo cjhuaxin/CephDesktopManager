@@ -306,8 +306,20 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
     };
 
     const handleSearchKeywordKeyPress = (event: any) => {
-        if (event.keyCode == 13) {
+        if (event.key.toLowerCase() == 'enter') {
             handleCreateFolder(event);
+        }
+    }
+
+    const handleUploadDialogKeyPress = (event: any) => {
+        if (event.key.toLowerCase() == 'escape') {
+            setOpenUploadDialog(false);
+        }
+    }
+
+    const handleCreateFolderDialogKeyPress = (event: any) => {
+        if (event.key.toLowerCase() == 'escape') {
+            setOpenCreateFolderDialog(false);
         }
     }
 
@@ -413,6 +425,7 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
                 open={openUploadDialog}
                 scroll="paper"
                 fullWidth={true}
+                onKeyUp={handleUploadDialogKeyPress}
             >
                 <DialogTitle>
                     Upload Objects
@@ -490,6 +503,7 @@ export default function UploadObject({ bucket, connectionId, prefix, searchKeywo
 
             <Dialog
                 open={openCreateFolderDialog}
+                onKeyUp={handleCreateFolderDialogKeyPress}
             >
                 <DialogTitle>Create Folder</DialogTitle>
                 <DialogContent>

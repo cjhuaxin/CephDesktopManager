@@ -92,6 +92,12 @@ export default function BucketMore({ connectionId, bucket, isCustom }: any) {
         });
     }
 
+    const handleDialogKeyPress = (event: any) => {
+        if (event.key.toLowerCase() == 'escape') {
+            setopenBucketInfoDialog(false);
+        }
+    }
+
     return (
         <div>
             <IconButton
@@ -129,6 +135,7 @@ export default function BucketMore({ connectionId, bucket, isCustom }: any) {
             <Dialog
                 open={openBucketInfoDialog}
                 onClick={handleDialagClick}
+                onKeyUp={handleDialogKeyPress}
                 scroll="paper"
                 fullWidth={true}
             >
@@ -156,7 +163,7 @@ export default function BucketMore({ connectionId, bucket, isCustom }: any) {
                         </Box>
                     </Typography>
                     <Typography variant="caption" display="block" gutterBottom>
-                        Polocy:
+                        Policy:
                         <Box bgcolor={valueBgcolor}>
                             <pre>
                                 {policy.current.policy}

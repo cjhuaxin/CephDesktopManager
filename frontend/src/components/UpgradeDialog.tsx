@@ -61,6 +61,12 @@ export default function UpgradeDialog() {
         });
     }
 
+    const handleDialogKeyPress = (event: any) => {
+        if (event.key.toLowerCase() == 'escape') {
+            setOpen(false);
+        }
+    }
+
     React.useEffect(() => {
         EventsOn(CHECK_UPGRADE, (result: UpgradeDetail) => {
             currentVersion.current = result.currentVersion;
@@ -123,7 +129,10 @@ export default function UpgradeDialog() {
 
     return (
         <div>
-            <Dialog open={open}>
+            <Dialog 
+            open={open}
+            onKeyUp={handleDialogKeyPress}
+            >
                 <DialogTitle>Check for updates</DialogTitle>
                 <DialogContent>
                     <DialogContentText>

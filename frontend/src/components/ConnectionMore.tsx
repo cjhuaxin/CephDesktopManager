@@ -119,6 +119,13 @@ export default function ConnectionMore({ connectionId, connectionName, hidden }:
         });
     }
 
+    const handleDialogKeyPress = (event: any) => {
+        console.log("key", event.key.toLowerCase())
+        if (event.key.toLowerCase() == 'escape') {
+            setOpenCustomBucketDialog(false);
+        }
+    }
+
     return (
         <div hidden={hidden}>
             <IconButton
@@ -162,6 +169,7 @@ export default function ConnectionMore({ connectionId, connectionName, hidden }:
             <Dialog
                 open={openCustomBucketDialog}
                 onClick={handleDialagClick}
+                onKeyUp={handleDialogKeyPress}
             >
                 <DialogTitle>Add Cusomt Bucket</DialogTitle>
                 <DialogContent>

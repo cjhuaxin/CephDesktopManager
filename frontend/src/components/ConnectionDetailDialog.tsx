@@ -177,6 +177,12 @@ export default function ConnectionDetailDialog() {
         return inputValid;
     }
 
+    const handleDialogKeyPress = (event: any) => {
+        if (event.key.toLowerCase() == 'escape') {
+            setOpen(false);
+        }
+    }
+
     const subscribeConnectionDetailEvent = () => {
         PubSub.subscribe(TOPIC_CONNECTION_DETAIL, function (_, d: ConnectionDetailEventBody) {
             eventData.current = d;
@@ -209,7 +215,11 @@ export default function ConnectionDetailDialog() {
     }, []);
 
     return (
-        <Dialog open={open} key={openId.current}>
+        <Dialog
+            open={open}
+            key={openId.current}
+            onKeyUp={handleDialogKeyPress}
+        >
             <DialogTitle>{eventData.current.title}</DialogTitle>
             <DialogContent>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
