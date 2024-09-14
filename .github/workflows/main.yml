@@ -78,13 +78,6 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install Bearer/tap/gon
 
-      - name: Import code signing certificate from Github Secrets
-        uses: Apple-Actions/import-codesign-certs@v3
-        if: runner.os == 'macOS'
-        with:
-          p12-file-base64: ${{ secrets.APPLE_DEVELOPER_CERTIFICATE_P12_BASE64 }}
-          p12-password: ${{ secrets.APPLE_DEVELOPER_CERTIFICATE_PASSWORD }}
-
       ## Windows
 
       - name: Install Windows dependencies
