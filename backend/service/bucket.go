@@ -192,5 +192,25 @@ func (s *Bucket) GetBucketInfo(req *models.GetBucketInfoReq) *models.BaseRespons
 		s.Log.Errorf("head bucket failed: %v", err)
 	}
 
+	// get bucket lifecycle
+	lifecycleResp, err := s3Client.GetBucketLifecycleConfiguration(ctx, &s3.GetBucketLifecycleConfigurationInput{
+		Bucket: aws.String(req.Bucket),
+	})
+	if err == nil {
+		lifecycles := make([]*models.LifecycleRule, 0, len(lifecycleResp.Rules))
+		for _, r := range lifecycleResp.Rules {
+			lifecycles = append(lifecycles, &models.LifecycleRule{
+				ID:                             *r.ID,
+				Prefix:                         *r.Prefix,
+				Status:                         string(r.Status),
+				AbortIncompleteMultipartUpload: &models.AbortIncompleteMultipartUpload{},
+				Expiration:                     &models.LifecycleExpiration{},
+			})
+		}
+		bucketInfo.Lifecycles = lifecycles
+	} else {
+		s.Log.Errorf("get bucket lifecycle failed: %v", err)
+	}
+
 	return s.BuildSucess(bucketInfo)
 }

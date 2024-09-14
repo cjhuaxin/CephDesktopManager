@@ -45,6 +45,10 @@ export interface BucketInfo {
         permission: string;
         displayName: string;
     }[];
+    lifecycles: {
+        id: string;
+        prefix: string;
+    }[];
 }
 
 export interface UploadDetail {

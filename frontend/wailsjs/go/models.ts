@@ -86,7 +86,7 @@ export namespace models {
 		    if (!a) {
 		        return a;
 		    }
-		    if (a.slice) {
+		    if (a.slice && a.map) {
 		        return (a as any[]).map(elem => this.convertValues(elem, classs));
 		    } else if ("object" === typeof a) {
 		        if (asMap) {
@@ -300,6 +300,40 @@ export namespace models {
 	        this.secretKey = source["secretKey"];
 	        this.region = source["region"];
 	        this.pathStyle = source["pathStyle"];
+	    }
+	}
+
+}
+
+export namespace multipart {
+	
+	export class FileHeader {
+	
+	
+	    static createFrom(source: any = {}) {
+	        return new FileHeader(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	
+	    }
+	}
+
+}
+
+export namespace s3 {
+	
+	export class Client {
+	
+	
+	    static createFrom(source: any = {}) {
+	        return new Client(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	
 	    }
 	}
 

@@ -129,12 +129,12 @@ func allBinds(app *App, extraBinds []Bind) []interface{} {
 func (a *App) onStart(ctx context.Context, binds ...Bind) error {
 	a.Ctx = ctx
 	a.Service.Ctx = ctx
-	//init directory for app
+	// init directory for app
 	err := a.initDirectoryStructure()
 	if err != nil {
 		return err
 	}
-	//init log
+	// init log
 	a.initLog()
 	for _, bind := range binds {
 		err = bind.Init()
@@ -199,7 +199,7 @@ func (a *App) initDirectoryStructure() error {
 		DownloadDir: filepath.Join(u.HomeDir, resource.DirPathDownload, resource.AppName),
 	}
 
-	//create folder
+	// create folder
 	err = a.createFolderIfNotExists()
 	if err != nil {
 		return err
@@ -213,7 +213,7 @@ func buildAppMenu(wailsJson, appicon []byte, app *App) *menu.Menu {
 	appName := gjson.GetBytes(wailsJson, "name")
 	version := gjson.GetBytes(wailsJson, "info.productVersion")
 	aboutMessage := fmt.Sprintf("Version %s\n\n Copyright © 2023 cjhuaxin", version.String())
-	//app menu
+	// app menu
 	appMenu := rootMenu.AddSubmenu(appName.String())
 	// about menu
 	appMenu.AddText(fmt.Sprintf("About %s", appName.String()), nil, func(_ *menu.CallbackData) {
@@ -282,18 +282,23 @@ func (a *App) createFolderIfNotExists() error {
 }
 
 func (a *App) initLog() {
-	infoLogger := &lumberjack.Logger{
+	fileLogger := &lumberjack.Logger{
 		Filename: filepath.Join(a.Paths.LogDir, "cdm.log"),
 	}
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
-	infoCore := zapcore.NewCore(
-		zapcore.NewJSONEncoder(encoderConfig),
-		zapcore.AddSync(infoLogger),
-		zapcore.InfoLevel,
+	encoder := zapcore.NewJSONEncoder(encoderConfig)
+	fileSyncer := zapcore.AddSync(fileLogger)
+	level := zapcore.InfoLevel
+	fileCore := zapcore.NewCore(
+		encoder,
+		fileSyncer,
+		level,
 	)
-	logger := zap.New(infoCore, zap.AddStacktrace(zapcore.FatalLevel))
+	consoleSyncer := zapcore.AddSync(os.Stdout)
+	consoleCore := zapcore.NewCore(encoder, consoleSyncer, level)
+	logger := zap.New(zapcore.NewTee(fileCore, consoleCore), zap.AddStacktrace(zapcore.FatalLevel))
 	a.Log = logger.Sugar()
 
 	defer a.Log.Sync()
@@ -305,7 +310,7 @@ func (a *App) DownloadUpgradeFile(req models.DownloadUpgradeFileReq) *models.Bas
 	fileName := urlParts[len(urlParts)-1]
 	path := filepath.Join(a.Paths.DownloadDir, fileName)
 	// Open or Create the output file
-	output, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	output, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o755)
 	if err != nil {
 		a.Log.Errorf("open download file failed: %v", err)
 		return a.BuildFailed(errcode.HttpErr, err.Error())

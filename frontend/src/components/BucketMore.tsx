@@ -1,13 +1,23 @@
 import DeleteIcon from '@mui/icons-material/Delete';
 import InfoIcon from '@mui/icons-material/Info';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import { Box, Button, Dialog, DialogActions, DialogContent, IconButton, ListItemIcon, Menu, MenuItem, TextField, Typography } from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogContent, IconButton, ListItemIcon, Menu, MenuItem, Typography } from "@mui/material";
 import React from "react";
 import { DeleteBucket, GetBucketInfo } from '../../wailsjs/go/service/Bucket';
 import { ALERT_TYPE_ERROR, ALERT_TYPE_SUCCESS, TOPIC_ALERT, TOPIC_CHANGE_OBJECTS_TABLE_STATE, TOPIC_CONFIRM, TOPIC_REFRESH_BUCKET_LIST } from '../constants/Pubsub';
 import { BucketInfo } from '../dto/BackendRes';
+import styled from '@emotion/styled';
 
 const valueBgcolor = "rgba(0, 0, 0, 0.06)"
+
+const JsonContainer = styled(Box)({
+    backgroundColor: '#f5f5f5',  // 设置背景色
+    padding: '16px',             // 内边距
+    borderRadius: '8px',          // 圆角
+    whiteSpace: 'pre-wrap',       // 保留换行和空格
+    overflowX: 'auto',            // 横向滚动
+    maxHeight: '500px',           // 限制最大高度
+});
 
 export default function BucketMore({ connectionId, bucket, isCustom }: any) {
 
@@ -20,6 +30,7 @@ export default function BucketMore({ connectionId, bucket, isCustom }: any) {
         location: "",
         policy: "",
         acls: [],
+        lifecycles: [],
     });
 
     const handleCloseCustomBucketDialog = (event: any) => {
@@ -156,20 +167,22 @@ export default function BucketMore({ connectionId, bucket, isCustom }: any) {
                     </Typography>
                     <Typography variant="caption" display="block" gutterBottom>
                         ACL:
-                        <Box bgcolor={valueBgcolor}>
-                            <pre>
-                                {JSON.stringify(policy.current.acls, null, 2)}
-                            </pre>
-                        </Box>
                     </Typography>
+                    <JsonContainer>
+                        {JSON.stringify(policy.current.acls, null, 2)}
+                    </JsonContainer>
                     <Typography variant="caption" display="block" gutterBottom>
                         Policy:
-                        <Box bgcolor={valueBgcolor}>
-                            <pre>
-                                {policy.current.policy}
-                            </pre>
-                        </Box>
                     </Typography>
+                    <JsonContainer>
+                        {policy.current.policy}
+                    </JsonContainer>
+                    <Typography variant="caption" display="block" gutterBottom>
+                        Lifecycle:
+                    </Typography>
+                    <JsonContainer>
+                        {JSON.stringify(policy.current.lifecycles, null, 2)}
+                    </JsonContainer>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleCloseCustomBucketDialog}>Close</Button>

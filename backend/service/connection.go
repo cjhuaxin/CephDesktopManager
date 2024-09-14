@@ -10,10 +10,9 @@ import (
 	"github.com/cjhuaxin/CephDesktopManager/backend/models"
 	"github.com/cjhuaxin/CephDesktopManager/backend/resource"
 	"github.com/cjhuaxin/CephDesktopManager/backend/util"
+	sqlite "github.com/mattn/go-sqlite3"
 	"github.com/rs/xid"
 	"github.com/thanhpk/randstr"
-	"modernc.org/sqlite"
-	sqlite3 "modernc.org/sqlite/lib"
 )
 
 type Connection struct {
@@ -75,14 +74,14 @@ func (s *Connection) SaveS3Connection(req *models.NewConnectionReq) *models.Base
 	}
 
 	if req.ID == "" {
-		//create a new connection
+		// create a new connection
 		connectionId := xid.New().String()
 		sql := fmt.Sprintf("INSERT INTO connection(id,name,endpoint,ak,sk,region,path_style) values('%s','%s','%s','%s','%s','%s','%d')",
 			connectionId, req.Name, normalizedEndpoint, req.AccessKey, encrypedSk, region, req.PathStyle)
 		_, err = s.DbClient.Exec(sql)
 		if err != nil {
 			if sqliteErr, ok := err.(*sqlite.Error); ok {
-				if sqliteErr.Code() == sqlite3.SQLITE_BUSY {
+				if sqliteErr.Code == sqlite.ErrBusy {
 					err = s.FixDatabaseLockd()
 					if err != nil {
 						s.Log.Errorf("fix database lock failed: %v", err)
@@ -105,26 +104,20 @@ func (s *Connection) SaveS3Connection(req *models.NewConnectionReq) *models.Base
 		}
 	} else {
 		// edit the connection
-		sql :=
-			fmt.Sprintf("UPDATE connection SET name = '%s',endpoint = '%s',ak = '%s',sk = '%s',region = '%s',path_style = %d WHERE id = '%s'",
-				req.Name, normalizedEndpoint, req.AccessKey, encrypedSk, region, req.PathStyle, req.ID)
+		sql := fmt.Sprintf("UPDATE connection SET name = '%s',endpoint = '%s',ak = '%s',sk = '%s',region = '%s',path_style = %d WHERE id = '%s'",
+			req.Name, normalizedEndpoint, req.AccessKey, encrypedSk, region, req.PathStyle, req.ID)
 		_, err = s.DbClient.Exec(sql)
 		if err != nil {
-			if err != nil {
-				if sqliteErr, ok := err.(*sqlite.Error); ok {
-					if sqliteErr.Code() == sqlite3.SQLITE_BUSY {
-						err = s.FixDatabaseLockd()
-						if err != nil {
-							s.Log.Errorf("fix database lock failed: %v", err)
-							return s.BuildFailed(errcode.DatabaseErr, err.Error())
-						}
-						// re-execute the sql
-						_, err = s.DbClient.Exec(sql)
-						if err != nil {
-							s.Log.Errorf("update connection[%s] info to db failed: %v", req.ID, err)
-							return s.BuildFailed(errcode.DatabaseErr, err.Error())
-						}
-					} else {
+			if sqliteErr, ok := err.(*sqlite.Error); ok {
+				if sqliteErr.Code == sqlite.ErrBusy {
+					err = s.FixDatabaseLockd()
+					if err != nil {
+						s.Log.Errorf("fix database lock failed: %v", err)
+						return s.BuildFailed(errcode.DatabaseErr, err.Error())
+					}
+					// re-execute the sql
+					_, err = s.DbClient.Exec(sql)
+					if err != nil {
 						s.Log.Errorf("update connection[%s] info to db failed: %v", req.ID, err)
 						return s.BuildFailed(errcode.DatabaseErr, err.Error())
 					}
@@ -132,9 +125,12 @@ func (s *Connection) SaveS3Connection(req *models.NewConnectionReq) *models.Base
 					s.Log.Errorf("update connection[%s] info to db failed: %v", req.ID, err)
 					return s.BuildFailed(errcode.DatabaseErr, err.Error())
 				}
+			} else {
+				s.Log.Errorf("update connection[%s] info to db failed: %v", req.ID, err)
+				return s.BuildFailed(errcode.DatabaseErr, err.Error())
 			}
 		}
-		//create a new s3 client for cache
+		// create a new s3 client for cache
 		s3Client, err := util.CreateS3ClientInstance(normalizedEndpoint, req.AccessKey, req.SecretKey, region, req.PathStyle)
 		if err != nil {
 			s.Log.Errorf("create s3 client failed: %v", req.ID, err)
@@ -220,7 +216,7 @@ func (s *Connection) GetConnectionDetail(req *models.GetConnectionDetailReq) *mo
 		s.Log.Errorf("query connection detail failed: %v", err)
 		return s.BuildFailed(errcode.DatabaseErr, err.Error())
 	}
-	//query encryption key
+	// query encryption key
 	encryptionKey, err := s.QueryEncryptionKey()
 	if err != nil {
 		s.Log.Errorf("query encryption key failed: %v", err)

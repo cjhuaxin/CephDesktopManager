@@ -23,7 +23,7 @@ type ConnectionItem struct {
 type ObjectItem struct {
 	ID           string     `json:"id"`
 	Key          string     `json:"key"`
-	RealKey      string     `json:"realKey"` //the object storage key
+	RealKey      string     `json:"realKey"` // the object storage key
 	Size         int64      `json:"size"`
 	LastModified *time.Time `json:"lastModified"`
 	CommonPrefix bool       `json:"commonPrefix"`
@@ -51,16 +51,35 @@ type ReleaseDetail struct {
 }
 
 type UpgradeProgress struct {
-	//store the percentage progress
+	// store the percentage progress
 	Percentage float64 `json:"percentage"`
-	//store the download rate,unit:kb/s
+	// store the download rate,unit:kb/s
 	Rate float64 `json:"rate"`
 }
 
 type BucketInfo struct {
-	Location string `json:"location"`
-	Policy   string `json:"policy"`
-	Acls     []*Acl `json:"acls"`
+	Location   string           `json:"location"`
+	Policy     string           `json:"policy"`
+	Acls       []*Acl           `json:"acls"`
+	Lifecycles []*LifecycleRule `json:"lifecycles"`
+}
+
+type LifecycleRule struct {
+	ID                             string                          `json:"id"`
+	Prefix                         string                          `json:"prefix"`
+	Status                         string                          `json:"status"`
+	AbortIncompleteMultipartUpload *AbortIncompleteMultipartUpload `json:"abortIncompleteMultipartUpload"`
+	Expiration                     *LifecycleExpiration            `json:"expiration"`
+}
+
+type AbortIncompleteMultipartUpload struct {
+	DaysAfterInitiation int `json:"daysAfterInitiation"`
+}
+
+type LifecycleExpiration struct {
+	Date                      *time.Time `json:"date"`
+	Days                      int        `json:"days"`
+	ExpiredObjectDeleteMarker bool       `json:"expiredObjectDeleteMarker"`
 }
 
 type Acl struct {

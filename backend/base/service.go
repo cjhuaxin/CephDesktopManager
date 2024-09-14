@@ -3,7 +3,6 @@ package base
 import (
 	"context"
 	"database/sql"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/cjhuaxin/CephDesktopManager/backend/models"
 	"github.com/cjhuaxin/CephDesktopManager/backend/resource"
 	"github.com/cjhuaxin/CephDesktopManager/backend/util"
+	_ "github.com/mattn/go-sqlite3"
 	"go.uber.org/zap"
 )
 
@@ -120,7 +120,7 @@ func (s *Service) GetCachedS3Client(connectionId string) (*s3.Client, error) {
 }
 
 func (s *Service) InitDbClient() error {
-	db, err := sql.Open("sqlite", filepath.Join(s.Paths.DbDir, resource.DatabaseFile))
+	db, err := sql.Open("sqlite3", filepath.Join(s.Paths.DbDir, resource.DatabaseFile))
 	if err != nil {
 		s.Log.Errorf("open database error: %v", err)
 		return err
@@ -134,7 +134,7 @@ func (s *Service) InitDbClient() error {
 func (s *Service) FixDatabaseLockd() error {
 	dbPath := filepath.Join(s.Paths.DbDir, resource.DatabaseFile)
 
-	input, err := ioutil.ReadFile(dbPath)
+	input, err := os.ReadFile(dbPath)
 	if err != nil {
 		s.Log.Errorf("read file[%s] failed: %v", dbPath, err)
 		return err
@@ -144,7 +144,7 @@ func (s *Service) FixDatabaseLockd() error {
 		s.Log.Errorf("remove file[%s] failed: %v", dbPath, err)
 		return err
 	}
-	err = ioutil.WriteFile(dbPath, input, 0644)
+	err = os.WriteFile(dbPath, input, 0o644)
 	if err != nil {
 		s.Log.Errorf("write file[%s] failed: %v", dbPath, err)
 		return err

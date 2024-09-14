@@ -13,15 +13,14 @@ import (
 
 func CreateS3ClientInstance(endpoint, ak, sk, region string, pathSytle int8) (*s3.Client, error) {
 	creds := credentials.NewStaticCredentialsProvider(ak, sk, "")
-	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		return aws.Endpoint{
-			URL: endpoint,
-		}, nil
-	})
+	// customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+	// 	return aws.Endpoint{
+	// 		URL: endpoint,
+	// 	}, nil
+	// })
 	cfg, err := config.LoadDefaultConfig(
 		context.TODO(),
 		config.WithCredentialsProvider(creds),
-		config.WithEndpointResolverWithOptions(customResolver),
 		config.WithRegion(region),
 		config.WithRetryMode(aws.RetryModeStandard),
 		config.WithRetryMaxAttempts(3),
@@ -31,6 +30,7 @@ func CreateS3ClientInstance(endpoint, ak, sk, region string, pathSytle int8) (*s
 	}
 
 	return s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(endpoint)
 		if pathSytle == resource.ForcePathSytle {
 			o.UsePathStyle = true
 		}

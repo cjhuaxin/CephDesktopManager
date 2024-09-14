@@ -63,7 +63,7 @@ func (s *Object) ListObjects(req *models.ListObjectsReq) *models.BaseResponse {
 	}
 	input := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(req.Bucket),
-		MaxKeys: req.PageSize,
+		MaxKeys: &req.PageSize,
 	}
 	if req.ContinueToken != "" {
 		input.ContinuationToken = aws.String(req.ContinueToken)
@@ -91,7 +91,7 @@ func (s *Object) ListObjects(req *models.ListObjectsReq) *models.BaseResponse {
 			// click folder no search keyword
 			prefix := req.Prefix
 			if !strings.HasSuffix(req.Prefix, req.Delimiter) {
-				//contains the search keyword
+				// contains the search keyword
 				prefixIndex := strings.LastIndex(req.Prefix, req.Delimiter)
 				prefix = req.Prefix[:prefixIndex+1]
 			}
@@ -110,14 +110,14 @@ func (s *Object) ListObjects(req *models.ListObjectsReq) *models.BaseResponse {
 	// add objects
 	for _, o := range output.Contents {
 		keySlice := strings.Split(*o.Key, req.Delimiter)
-		//trim the virtual folder, only show the object key
+		// trim the virtual folder, only show the object key
 		trimKey := keySlice[len(keySlice)-1]
 
 		data = append(data, &models.ObjectItem{
 			ID:           xid.New().String(),
 			Key:          trimKey,
 			RealKey:      *o.Key,
-			Size:         o.Size,
+			Size:         *o.Size,
 			LastModified: o.LastModified,
 		})
 	}
@@ -140,7 +140,7 @@ func (s *Object) DownloadObjects(req *models.DownloadObjectsReq) *models.BaseRes
 	}
 
 	downloader := util.CreateS3Downloader(s3Client)
-	//query connection name for make directory
+	// query connection name for make directory
 	stmt, err := s.DbClient.Prepare("SELECT name FROM connection WHERE id = ?")
 	if err != nil {
 		s.Log.Errorf("prepare sql statement failed: %v", err)
@@ -169,7 +169,7 @@ func (s *Object) DownloadObjects(req *models.DownloadObjectsReq) *models.BaseRes
 	}
 	close(downloadChan)
 	wg.Wait()
-	//start download files
+	// start download files
 	err = s.download(connectionName, req.Bucket, downlaodKeys, downloader)
 	if err != nil {
 		return s.BuildFailed(errcode.FileErr, err.Error())
@@ -248,7 +248,7 @@ func (s *Object) obtainDownloadFiles(connectionName, bucket string, keys []strin
 		downloadChan <- key
 	}
 
-	//if the folder array is not empty, download all the files under the folders
+	// if the folder array is not empty, download all the files under the folders
 	subFolders := make([]string, 0)
 	for _, folder := range folderArray {
 		// Each folder supports up to 1000 files
@@ -332,11 +332,12 @@ func (s *Object) PutMultipartUpload(fileHeader *multipart.FileHeader, params url
 		fileNameKey: fmt.Sprintf("%x", md5.Sum([]byte(fileName))),
 		ctx:         s.Ctx,
 	}
+	partNumber32 := int32(partNumber)
 	out, err := s3Client.UploadPart(context.TODO(), &s3.UploadPartInput{
 		Bucket:     aws.String(bucket),
 		Key:        aws.String(key),
 		UploadId:   aws.String(uploadId),
-		PartNumber: int32(partNumber),
+		PartNumber: &partNumber32,
 		Body:       pr,
 	})
 	if err != nil {
@@ -360,14 +361,14 @@ func (s *Object) CompleteMultipartUpload(req *models.CompleteMultipartUploadReq)
 	ctx, cancel := s.GetTimeoutContext()
 	defer cancel()
 	parts := make([]types.CompletedPart, 0, len(req.Etags))
-	//sort by parts
+	// sort by parts
 	sort.SliceStable(req.Etags, func(i, j int) bool {
 		return req.Etags[i].Part < req.Etags[j].Part
 	})
 	for _, part := range req.Etags {
 		parts = append(parts, types.CompletedPart{
 			ETag:       aws.String(part.Value),
-			PartNumber: part.Part,
+			PartNumber: &part.Part,
 		})
 	}
 	_, err = s3Client.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
@@ -399,7 +400,6 @@ func (s *Object) AbortMultipartUpload(req *models.AbortMultipartUploadReq) *mode
 		Key:      aws.String(req.Key),
 		UploadId: aws.String(req.UploadID),
 	})
-
 	if err != nil {
 		s.Log.Errorf("abort multipart upload[%s|%s|%s] failed: %v", req.Bucket, req.Key, req.UploadID, err)
 		return s.BuildFailed(errcode.UnExpectedErr, err.Error())
@@ -443,7 +443,7 @@ func (s *Object) DeleteObjects(req *models.DeleteObjectsReq) *models.BaseRespons
 
 func (s *Object) makeTargetDirectory(connectionName, bucket, key string) (string, error) {
 	file := filepath.Join(s.Paths.DownloadDir, connectionName, bucket, key)
-	if err := os.MkdirAll(filepath.Dir(file), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
 		s.Log.Errorf("make all dir failed: %s", filepath.Dir(file))
 		return "", err
 	}
